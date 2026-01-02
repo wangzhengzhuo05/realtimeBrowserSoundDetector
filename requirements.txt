@@ -1,0 +1,11 @@
+# 基础依赖
+websockets>=12.0
+numpy>=1.24.0
+dashscope>=1.14.0
+colorama>=0.4.6
+
+# 本地 FunASR 模式需要的额外依赖 (可选)
+# funasr>=1.0.0
+# torch>=2.0.0
+# torchaudio>=2.0.0
+# modelscope>=1.9.0

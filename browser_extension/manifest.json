@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "课堂音频监听助手",
+    "description": "捕获浏览器标签页音频并发送到本地服务器进行语音识别",
+    "version": "1.0.0",
+    "permissions": [
+        "tabCapture",
+        "activeTab",
+        "scripting",
+        "storage",
+        "offscreen"
+    ],
+    "action": {
+        "default_popup": "popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
+    }
+}

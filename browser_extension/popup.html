@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂音频监听</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 320px;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        .header p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .status-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .status-value {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff6b6b;
+        }
+
+        .status-dot.connected {
+            background: #51cf66;
+            box-shadow: 0 0 8px rgba(81, 207, 102, 0.6);
+        }
+
+        .status-dot.capturing {
+            background: #ffd43b;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+        }
+
+        .btn:last-child {
+            margin-bottom: 0;
+        }
+
+        .btn-primary {
+            background: white;
+            color: #667eea;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-danger {
+            background: rgba(255, 107, 107, 0.9);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #ff6b6b;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .server-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .server-input:focus {
+            outline: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .volume-meter {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .volume-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #51cf66, #ffd43b, #ff6b6b);
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 11px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎓 课堂音频监听</h1>
+        <p>实时语音识别 & 关键词报警</p>
+    </div>
+
+    <div class="status-card">
+        <div class="status-row">
+            <span class="status-label">服务器连接</span>
+            <span class="status-value">
+                <span class="status-dot" id="serverDot"></span>
+                <span id="serverStatus">未连接</span>
+            </span>
+        </div>
+        <div class="status-row">
+            <span class="status-label">音频捕获</span>
+            <span class="status-value">
+                <span class="status-dot" id="captureDot"></span>
+                <span id="captureStatus">未开始</span>
+            </span>
+        </div>
+        <div class="volume-meter">
+            <div class="volume-bar" id="volumeBar"></div>
+        </div>
+    </div>
+
+    <input type="text" class="server-input" id="serverUrl" value="ws://localhost:8765" placeholder="WebSocket 服务器地址">
+
+    <button class="btn btn-primary" id="startBtn">▶ 开始捕获音频</button>
+    <button class="btn btn-danger" id="stopBtn" disabled>■ 停止捕获</button>
+
+    <div class="footer">
+        确保 Python 服务器正在运行
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
