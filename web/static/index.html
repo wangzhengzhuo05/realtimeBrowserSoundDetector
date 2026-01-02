@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂监听报警系统 - 控制面板</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 课堂监听报警系统</h1>
+            <p class="subtitle">Classroom Audio Monitor & Alert System</p>
+        </header>
+
+        <!-- 状态面板 -->
+        <section class="status-panel">
+            <div class="status-item">
+                <span class="status-label">系统状态</span>
+                <span class="status-value" id="systemStatus">
+                    <span class="status-dot offline"></span>
+                    <span id="statusText">未连接</span>
+                </span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">WebSocket</span>
+                <span class="status-value" id="wsStatus">ws://localhost:8765</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">ASR 模式</span>
+                <span class="status-value" id="asrMode">-</span>
+            </div>
+        </section>
+
+        <!-- 实时识别结果 -->
+        <section class="card">
+            <h2>📝 实时识别结果</h2>
+            <div class="recognition-box" id="recognitionBox">
+                <p class="placeholder">等待语音输入...</p>
+            </div>
+            <div class="alert-log" id="alertLog">
+                <h3>🔔 报警记录</h3>
+                <div id="alertList" class="alert-list">
+                    <p class="placeholder">暂无报警记录</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 配置表单 -->
+        <section class="card">
+            <h2>⚙️ 系统配置</h2>
+            <form id="configForm">
+                <!-- ASR 配置 -->
+                <div class="form-group">
+                    <label for="useCloudApi">ASR 模式</label>
+                    <select id="useCloudApi" name="useCloudApi">
+                        <option value="true">阿里云 DashScope API (推荐)</option>
+                        <option value="false">本地 FunASR</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="apiKey">DashScope API Key</label>
+                    <div class="input-with-button">
+                        <input type="password" id="apiKey" name="apiKey" placeholder="请输入 API Key">
+                        <button type="button" class="btn-small" onclick="toggleApiKeyVisibility()">👁️</button>
+                    </div>
+                    <small>
+                        <a href="https://dashscope.console.aliyun.com/" target="_blank">获取 API Key →</a>
+                    </small>
+                </div>
+
+                <!-- WebSocket 配置 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="wsHost">WebSocket 主机</label>
+                        <input type="text" id="wsHost" name="wsHost" value="localhost">
+                    </div>
+                    <div class="form-group">
+                        <label for="wsPort">端口</label>
+                        <input type="number" id="wsPort" name="wsPort" value="8765">
+                    </div>
+                </div>
+
+                <!-- 关键词配置 -->
+                <div class="form-group">
+                    <label for="keywords">监控关键词</label>
+                    <textarea id="keywords" name="keywords" rows="3" placeholder="每行一个关键词，或用逗号分隔"></textarea>
+                    <small>支持逗号分隔或换行分隔</small>
+                </div>
+
+                <!-- 报警配置 -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cooldown">报警冷却时间 (秒)</label>
+                        <input type="number" id="cooldown" name="cooldown" value="5" min="1" max="60">
+                    </div>
+                    <div class="form-group">
+                        <label for="customSound">自定义报警音频</label>
+                        <input type="text" id="customSound" name="customSound" placeholder="留空使用默认蜂鸣声">
+                        <small>支持 .wav 格式，填写绝对路径</small>
+                    </div>
+                </div>
+
+                <!-- 按钮组 -->
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">💾 保存配置</button>
+                    <button type="button" class="btn btn-secondary" onclick="loadConfig()">🔄 重新加载</button>
+                    <button type="button" class="btn btn-success" onclick="restartService()">🚀 重启服务</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 使用说明 -->
+        <section class="card">
+            <h2>📖 使用说明</h2>
+            <div class="instructions">
+                <ol>
+                    <li>在上方配置区域填写 DashScope API Key</li>
+                    <li>设置需要监控的关键词（如：签到、点名、扫码等）</li>
+                    <li>点击 <strong>保存配置</strong> 保存设置</li>
+                    <li>点击 <strong>重启服务</strong> 使配置生效</li>
+                    <li>打开 Chrome 浏览器，安装 <code>browser_extension</code> 扩展</li>
+                    <li>打开网课页面，点击扩展图标开始捕获音频</li>
+                    <li>检测到关键词时会自动播放报警声</li>
+                </ol>
+            </div>
+        </section>
+
+        <footer>
+            <p>课堂监听报警系统 v2.0 |
+                <a href="https://github.com/wangzhengzhuo05/realtimeBrowserSoundDetector" target="_blank">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

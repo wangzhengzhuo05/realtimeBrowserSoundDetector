@@ -96,6 +96,14 @@ class AudioWebSocketServer:
             self.server.close()
             print(f"{Fore.CYAN}[信息] WebSocket 服务器已停止{Style.RESET_ALL}")
     
+    async def stop_async(self):
+        """异步停止服务器"""
+        self.is_running = False
+        if self.server:
+            self.server.close()
+            await self.server.wait_closed()
+            print(f"{Fore.CYAN}[信息] WebSocket 服务器已停止{Style.RESET_ALL}")
+    
     async def send_to_clients(self, message: str):
         """向所有连接的客户端发送消息"""
         if self.connected_clients:

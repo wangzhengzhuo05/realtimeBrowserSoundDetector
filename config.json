@@ -1,0 +1,20 @@
+{
+  "use_cloud_api": true,
+  "api_key": "your-api-key-here",
+  "ws_host": "localhost",
+  "ws_port": 8765,
+  "keywords": [
+    "签到",
+    "点名",
+    "打开手机",
+    "扫码",
+    "考勤",
+    "输入码",
+    "钉钉",
+    "上课"
+  ],
+  "cooldown": 5,
+  "custom_sound": null,
+  "web_host": "localhost",
+  "web_port": 8080
+}

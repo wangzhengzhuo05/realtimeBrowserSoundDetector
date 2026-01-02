@@ -7,8 +7,7 @@
 - 🌐 **浏览器音频捕获** - 通过 Chrome 扩展直接捕获浏览器标签页音频
 - 🎙️ **实时语音识别** - 支持阿里云 DashScope API 和本地 FunASR 两种模式
 - 🔔 **关键词报警** - 检测到指定关键词时自动播放报警声
-- 🎵 **自定义报警音** - 支持自定义 .wav 格式报警音频
-- 🔄 **自动重连** - ASR 连接断开时自动重连，稳定可靠
+- 🎵 **自定义报警音** - 支持自定义 .wav 格式报警音频- 🖥️ **Web 控制面板** - 在浏览器中配置 API Key、关键词等参数- 🔄 **自动重连** - ASR 连接断开时自动重连，稳定可靠
 - 📦 **模块化设计** - 代码结构清晰，易于扩展和维护
 
 ## 📁 项目结构
@@ -16,8 +15,11 @@
 ```
 realtimeBrowserSoundDetector/
 ├── main.py                 # 程序入口
-├── monitor.py              # 主控制器
-├── config.py               # 配置文件
+├── monitor.py              # 主控制器 (基础版)
+├── monitor_web.py          # 主控制器 (Web 增强版)
+├── config.py               # 配置文件 (旧版)
+├── config_manager.py       # 动态配置管理器
+├── config.json             # 配置数据 (自动生成)
 ├── requirements.txt        # Python 依赖
 ├── asr/                    # 语音识别模块
 │   ├── __init__.py
@@ -30,6 +32,13 @@ realtimeBrowserSoundDetector/
 ├── alert/                  # 报警模块
 │   ├── __init__.py
 │   └── keyword_alert.py    # 关键词检测与报警
+├── web/                    # Web 控制面板
+│   ├── __init__.py
+│   ├── server.py           # HTTP/WebSocket 服务器
+│   └── static/             # 前端静态文件
+│       ├── index.html
+│       ├── style.css
+│       └── app.js
 └── browser_extension/      # Chrome 浏览器扩展
     ├── manifest.json
     ├── background.js
@@ -45,7 +54,7 @@ realtimeBrowserSoundDetector/
 
 ```bash
 # 克隆项目
-git clone https://github.com/yourusername/realtimeBrowserSoundDetector.git
+git clone https://github.com/wangzhengzhuo05/realtimeBrowserSoundDetector.git
 cd realtimeBrowserSoundDetector
 
 # 创建虚拟环境
@@ -58,29 +67,30 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-### 2. 配置 API Key
+### 2. 启动程序
 
-编辑 `config.py` 文件，填入你的阿里云 DashScope API Key：
-
-```python
-DASHSCOPE_API_KEY = "your-api-key-here"
+```bash
+python main.py
 ```
+
+### 3. 配置系统
+
+打开浏览器访问 **http://localhost:8080** ，在 Web 控制面板中：
+
+1. 填入你的 DashScope API Key
+2. 设置需要监控的关键词
+3. 点击「保存配置」
+4. 点击「重启服务」使配置生效
 
 > 💡 **获取 API Key**: 访问 [阿里云 DashScope 控制台](https://dashscope.console.aliyun.com/)，注册并开通服务（有免费额度）
 
-### 3. 安装浏览器扩展
+### 4. 安装浏览器扩展
 
 1. 打开 Chrome 浏览器，访问 `chrome://extensions/`
 2. 开启右上角的 **"开发者模式"**
 3. 点击 **"加载已解压的扩展程序"**
 4. 选择项目中的 `browser_extension` 文件夹
 5. 扩展安装完成！
-
-### 4. 启动程序
-
-```bash
-python main.py
-```
 
 ### 5. 开始监听
 
@@ -91,21 +101,17 @@ python main.py
 
 ## ⚙️ 配置说明
 
-编辑 `config.py` 自定义配置：
+通过 Web 控制面板 (http://localhost:8080) 可以配置以下参数：
 
-```python
-# ASR 模式: True = 云端 API, False = 本地模型
-USE_CLOUD_API = True
+| 参数       | 说明                  |
+| ---------- | --------------------- |
+| ASR 模式   | 云端 API 或本地模型   |
+| API Key    | DashScope API 密钥    |
+| 监控关键词 | 触发报警的关键词列表  |
+| 冷却时间   | 报警间隔时间（秒）    |
+| 自定义音频 | .wav 格式报警音频路径 |
 
-# 监控关键词列表
-ALERT_KEYWORDS = ["签到", "点名", "打开手机", "扫码", "考勤", "输入码", "钉钉", "上课"]
-
-# 报警冷却时间（秒）
-ALERT_COOLDOWN = 5
-
-# 自定义报警音频 (可选，支持 .wav 格式)
-CUSTOM_ALERT_SOUND = None  # 或 "D:/sounds/alert.wav"
-```
+配置会自动保存到 `config.json` 文件。
 
 ## 🔊 自定义报警音
 

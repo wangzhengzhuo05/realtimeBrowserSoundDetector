@@ -1,0 +1,228 @@
+# -*- coding: utf-8 -*-
+"""
+Web 服务器模块
+提供 HTTP API 和静态文件服务
+"""
+
+import os
+import json
+import asyncio
+from pathlib import Path
+from typing import Callable, Set
+
+from aiohttp import web, WSMsgType
+
+from colorama import Fore, Style
+
+
+class WebServer:
+    """
+    Web 服务器
+    提供配置管理 API 和实时状态推送
+    """
+    
+    def __init__(self, host: str = "localhost", port: int = 8080):
+        self.host = host
+        self.port = port
+        self.app = web.Application()
+        self.runner = None
+        self.site = None
+        
+        # 状态 WebSocket 客户端
+        self.status_clients: Set[web.WebSocketResponse] = set()
+        
+        # 配置文件路径
+        self.config_file = Path(__file__).parent.parent / "config.json"
+        
+        # 静态文件目录
+        self.static_dir = Path(__file__).parent / "static"
+        
+        # 重启回调
+        self.restart_callback: Callable = None
+        
+        # 设置路由
+        self._setup_routes()
+    
+    def _setup_routes(self):
+        """设置路由"""
+        self.app.router.add_get("/api/config", self._handle_get_config)
+        self.app.router.add_post("/api/config", self._handle_save_config)
+        self.app.router.add_post("/api/restart", self._handle_restart)
+        self.app.router.add_get("/ws/status", self._handle_status_ws)
+        
+        # 静态文件
+        self.app.router.add_get("/", self._handle_index)
+        self.app.router.add_static("/", self.static_dir, name="static")
+    
+    async def _handle_index(self, request: web.Request) -> web.Response:
+        """返回首页"""
+        index_file = self.static_dir / "index.html"
+        if index_file.exists():
+            return web.FileResponse(index_file)
+        return web.Response(text="Index not found", status=404)
+    
+    async def _handle_get_config(self, request: web.Request) -> web.Response:
+        """获取配置"""
+        try:
+            config = self._load_config()
+            return web.json_response(config)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_save_config(self, request: web.Request) -> web.Response:
+        """保存配置"""
+        try:
+            data = await request.json()
+            self._save_config(data)
+            return web.json_response({"success": True, "message": "配置已保存"})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_restart(self, request: web.Request) -> web.Response:
+        """重启服务"""
+        try:
+            if self.restart_callback:
+                # 异步执行重启
+                asyncio.create_task(self._do_restart())
+            return web.json_response({"success": True, "message": "服务正在重启"})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _do_restart(self):
+        """执行重启"""
+        await asyncio.sleep(0.5)  # 等待响应发送
+        if self.restart_callback:
+            await self.restart_callback()
+    
+    async def _handle_status_ws(self, request: web.Request) -> web.WebSocketResponse:
+        """处理状态 WebSocket 连接"""
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+        
+        self.status_clients.add(ws)
+        print(f"{Fore.CYAN}[Web] 状态客户端已连接 (共 {len(self.status_clients)} 个){Style.RESET_ALL}")
+        
+        try:
+            # 发送初始状态
+            await ws.send_json({
+                "type": "status",
+                "status": "online",
+                "message": "已连接"
+            })
+            
+            # 保持连接
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    # 处理客户端消息（如果需要）
+                    pass
+                elif msg.type == WSMsgType.ERROR:
+                    print(f"{Fore.YELLOW}[Web] WebSocket 错误: {ws.exception()}{Style.RESET_ALL}")
+                    break
+        finally:
+            self.status_clients.discard(ws)
+            print(f"{Fore.CYAN}[Web] 状态客户端已断开 (剩余 {len(self.status_clients)} 个){Style.RESET_ALL}")
+        
+        return ws
+    
+    async def broadcast_status(self, data: dict):
+        """广播状态给所有客户端"""
+        if not self.status_clients:
+            return
+        
+        closed_clients = set()
+        for ws in self.status_clients:
+            try:
+                if not ws.closed:
+                    await ws.send_json(data)
+                else:
+                    closed_clients.add(ws)
+            except Exception as e:
+                closed_clients.add(ws)
+        
+        # 移除已关闭的客户端
+        self.status_clients -= closed_clients
+    
+    async def send_recognition(self, text: str):
+        """发送识别结果"""
+        await self.broadcast_status({
+            "type": "recognition",
+            "text": text
+        })
+    
+    async def send_alert(self, keywords: list, text: str):
+        """发送报警通知"""
+        await self.broadcast_status({
+            "type": "alert",
+            "keywords": keywords,
+            "text": text
+        })
+    
+    def _load_config(self) -> dict:
+        """加载配置"""
+        # 如果 JSON 配置文件存在，从中加载
+        if self.config_file.exists():
+            with open(self.config_file, "r", encoding="utf-8") as f:
+                return json.load(f)
+        
+        # 否则从 config.py 加载默认值
+        try:
+            import config
+            return {
+                "use_cloud_api": getattr(config, "USE_CLOUD_API", True),
+                "api_key": getattr(config, "DASHSCOPE_API_KEY", ""),
+                "ws_host": getattr(config, "WS_HOST", "localhost"),
+                "ws_port": getattr(config, "WS_PORT", 8765),
+                "keywords": getattr(config, "ALERT_KEYWORDS", []),
+                "cooldown": getattr(config, "ALERT_COOLDOWN", 5),
+                "custom_sound": getattr(config, "CUSTOM_ALERT_SOUND", None)
+            }
+        except ImportError:
+            return {
+                "use_cloud_api": True,
+                "api_key": "",
+                "ws_host": "localhost",
+                "ws_port": 8765,
+                "keywords": ["签到", "点名", "打开手机", "扫码"],
+                "cooldown": 5,
+                "custom_sound": None
+            }
+    
+    def _save_config(self, data: dict):
+        """保存配置到 JSON 文件"""
+        config = {
+            "use_cloud_api": data.get("use_cloud_api", True),
+            "api_key": data.get("api_key", ""),
+            "ws_host": data.get("ws_host", "localhost"),
+            "ws_port": data.get("ws_port", 8765),
+            "keywords": data.get("keywords", []),
+            "cooldown": data.get("cooldown", 5),
+            "custom_sound": data.get("custom_sound")
+        }
+        
+        with open(self.config_file, "w", encoding="utf-8") as f:
+            json.dump(config, f, ensure_ascii=False, indent=2)
+        
+        print(f"{Fore.GREEN}[Web] 配置已保存到 {self.config_file}{Style.RESET_ALL}")
+    
+    def set_restart_callback(self, callback: Callable):
+        """设置重启回调"""
+        self.restart_callback = callback
+    
+    async def start(self):
+        """启动服务器"""
+        self.runner = web.AppRunner(self.app)
+        await self.runner.setup()
+        self.site = web.TCPSite(self.runner, self.host, self.port)
+        await self.site.start()
+        print(f"{Fore.GREEN}[成功] Web 控制面板已启动: http://{self.host}:{self.port}{Style.RESET_ALL}")
+    
+    async def stop(self):
+        """停止服务器"""
+        # 关闭所有 WebSocket 连接
+        for ws in list(self.status_clients):
+            await ws.close()
+        self.status_clients.clear()
+        
+        if self.runner:
+            await self.runner.cleanup()
+            print(f"{Fore.CYAN}[信息] Web 服务器已停止{Style.RESET_ALL}")
