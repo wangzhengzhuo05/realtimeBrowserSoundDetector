@@ -58,6 +58,17 @@
                     </div>
                 </div>
             </div>
+            <!-- LLM 检测状态 -->
+            <div id="llmStatus" class="llm-status">
+                <span class="time"></span> 等待 LLM 检测...
+            </div>
+            <!-- 签到码记录 -->
+            <div class="code-log" id="codeLog">
+                <h3>🔢 签到码记录</h3>
+                <div id="codeList" class="code-list">
+                    <p class="placeholder">暂未检测到签到码</p>
+                </div>
+            </div>
             <div class="alert-log" id="alertLog">
                 <h3>🔔 报警记录</h3>
                 <div id="alertList" class="alert-list">
@@ -88,15 +99,6 @@
                         <span>🔧 调试模式（同时运行 ASR 和 Qwen2-Audio）</span>
                     </label>
                     <small>对比两种模式的识别结果，方便调试</small>
-                </div>
-
-                <!-- 静音外放 -->
-                <div class="form-group checkbox-group">
-                    <label class="checkbox-label">
-                        <input type="checkbox" id="mutePlayback" name="mutePlayback">
-                        <span>🔇 静音外放（捕获音频后不播放）</span>
-                    </label>
-                    <small>开启后浏览器捕获的音频不会通过扬声器播放</small>
                 </div>
 
                 <!-- ASR 配置 -->

@@ -14,6 +14,7 @@ from config_manager import config
 from audio import AudioWebSocketServer
 from asr import DashScopeASR, FunASREngine
 from alert import KeywordAlert, Qwen2AudioDetector, LLMTextDetector
+from alert.code_recorder import CodeRecorder
 from web import WebServer
 
 
@@ -143,6 +144,10 @@ class ClassroomMonitor:
         self.web_server = WebServer(config.web_host, config.web_port)
         self.web_server.set_restart_callback(self._handle_restart)
         
+        # 初始化签到码记录器（4位及以上连续数字）
+        self.code_recorder = CodeRecorder(save_path="detected_codes.json", min_digits=4)
+        self.code_recorder.set_callback(self._on_code_detected)
+        
         self.is_running = False
         self.text_buffer = ""  # 用于累积识别文本
         self._restart_requested = False
@@ -154,6 +159,9 @@ class ClassroomMonitor:
             # 显示识别结果
             label = "[ASR]" if self.debug_mode else "[识别]"
             print(f"{Fore.WHITE}{label} {text}{Style.RESET_ALL}")
+            
+            # 检测签到码
+            self.code_recorder.check_text(text)
             
             # 累积文本并检查关键词
             self.text_buffer += text
@@ -185,6 +193,12 @@ class ClassroomMonitor:
             # 发送识别结果
             source = "qwen2-audio" if self.debug_mode else None
             self._schedule_async(self.web_server.send_recognition(text, source))
+            # 检测签到码
+            self.code_recorder.check_text(text)
+    
+    def _on_code_detected(self, code: str, timestamp: str):
+        """签到码检测回调"""
+        self._schedule_async(self.web_server.send_code_detected(code, timestamp))
     
     def _on_qwen2_alert(self, keywords: List[str], text: str):
         """Qwen2-Audio 报警回调"""
@@ -200,6 +214,9 @@ class ClassroomMonitor:
         """ASR+LLM 模式的 ASR 识别结果回调"""
         if text:
             print(f"{Fore.WHITE}[识别] {text}{Style.RESET_ALL}")
+            
+            # 检测签到码
+            self.code_recorder.check_text(text)
             
             # 累积文本
             self.text_buffer += text
@@ -236,6 +253,10 @@ class ClassroomMonitor:
             winsound.Beep(1000, 500)
         except:
             pass
+    
+    def _on_llm_no_detect(self, reason: str):
+        """LLM 未检测到意图回调"""
+        self._schedule_async(self.web_server.send_llm_status(False, reason))
     
     def _schedule_async(self, coro):
         """线程安全地调度异步任务"""
@@ -291,6 +312,7 @@ class ClassroomMonitor:
                 self.asr_engine.set_result_callback(self._on_asr_llm_text)
                 self.asr_engine.start()
                 self.llm_detector.set_alert_callback(self._on_llm_alert)
+                self.llm_detector.set_no_detect_callback(self._on_llm_no_detect)
                 self.llm_detector.start()
             elif self.detect_mode == "qwen2-audio" and self.audio_detector:
                 # Qwen2-Audio 模式

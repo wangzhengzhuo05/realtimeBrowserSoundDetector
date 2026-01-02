@@ -55,7 +55,7 @@ async function closeOffscreenDocument() {
 /**
  * 开始捕获音频
  */
-async function startCapture(serverUrl) {
+async function startCapture(serverUrl, enablePlayback = true) {
     try {
         // 获取当前标签页
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -82,7 +82,8 @@ async function startCapture(serverUrl) {
         const response = await chrome.runtime.sendMessage({
             type: 'START_CAPTURE_OFFSCREEN',
             streamId: streamId,
-            serverUrl: serverUrl
+            serverUrl: serverUrl,
+            enablePlayback: enablePlayback
         });
 
         if (response && response.success) {
@@ -133,7 +134,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             break;
 
         case 'START_CAPTURE':
-            startCapture(message.serverUrl).then(sendResponse);
+            startCapture(message.serverUrl, message.enablePlayback).then(sendResponse);
             return true; // 异步响应
 
         case 'STOP_CAPTURE':

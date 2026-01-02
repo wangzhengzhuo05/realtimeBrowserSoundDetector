@@ -50,6 +50,7 @@ class LLMTextDetector:
         # 回调函数
         self._alert_callback: Optional[Callable[[List[str], str], None]] = None
         self._analysis_callback: Optional[Callable[[str], None]] = None
+        self._no_detect_callback: Optional[Callable[[str], None]] = None  # 未检测到意图回调
         
         # 构建系统提示词
         keywords_str = "、".join(keywords)
@@ -74,6 +75,10 @@ class LLMTextDetector:
     def set_analysis_callback(self, callback: Callable[[str], None]):
         """设置分析结果回调函数（用于显示 LLM 的分析结果）"""
         self._analysis_callback = callback
+    
+    def set_no_detect_callback(self, callback: Callable[[str], None]):
+        """设置未检测到意图的回调函数"""
+        self._no_detect_callback = callback
     
     def feed_text(self, text: str):
         """喂入 ASR 识别的文本"""
@@ -131,9 +136,14 @@ class LLMTextDetector:
                     else:
                         print(f"{Fore.YELLOW}[LLM检测] 冷却中，跳过报警{Style.RESET_ALL}")
                 else:
-                    # 可选：显示未检测到的分析结果
-                    if self._analysis_callback and result:
-                        self._analysis_callback(f"未检测到关键意图")
+                    # 显示未检测到意图
+                    reason = result.get("reason", "") if result else ""
+                    print(f"{Fore.CYAN}[LLM检测] 未检测到签到意图{Style.RESET_ALL}")
+                    if reason:
+                        print(f"{Fore.CYAN}[LLM检测] 原因: {reason}{Style.RESET_ALL}")
+                    # 调用未检测到意图的回调
+                    if self._no_detect_callback:
+                        self._no_detect_callback(reason if reason else "未检测到签到意图")
                         
             except Exception as e:
                 print(f"{Fore.RED}[LLM检测] 分析失败: {e}{Style.RESET_ALL}")

@@ -49,9 +49,8 @@ async function loadConfig() {
         const isQwen2 = detectMode === 'qwen2-audio';
         document.getElementById('asrModeGroup').style.display = isQwen2 ? 'none' : 'block';
 
-        // Debug 模式和静音外放
+        // Debug 模式
         document.getElementById('debugMode').checked = config.debug_mode || false;
-        document.getElementById('mutePlayback').checked = config.mute_playback || false;
 
         // 根据 Debug 模式切换视图
         switchRecognitionView(config.debug_mode || false);
@@ -97,11 +96,9 @@ async function saveConfig(e) {
 
     const detectMode = document.getElementById('detectMode').value;
     const debugMode = document.getElementById('debugMode').checked;
-    const mutePlayback = document.getElementById('mutePlayback').checked;
     const config = {
         detect_mode: detectMode,
         debug_mode: debugMode,
-        mute_playback: mutePlayback,
         use_cloud_api: document.getElementById('useCloudApi').value === 'true',
         api_key: document.getElementById('apiKey').value,
         ws_host: document.getElementById('wsHost').value,
@@ -233,6 +230,12 @@ function handleStatusMessage(data) {
         case 'status':
             updateStatus(data.status, data.message);
             break;
+        case 'llm_status':
+            updateLLMStatus(data.detected, data.reason);
+            break;
+        case 'code_detected':
+            addCodeRecord(data.code, data.timestamp);
+            break;
     }
 }
 
@@ -340,6 +343,43 @@ function addAlertRecord(keywords, text, source) {
     playAlertSound();
 }
 
+// 添加签到码记录
+function addCodeRecord(code, timestamp) {
+    const list = document.getElementById('codeList');
+    const placeholder = list.querySelector('.placeholder');
+    if (placeholder) {
+        placeholder.remove();
+    }
+
+    const item = document.createElement('div');
+    item.className = 'code-item';
+
+    item.innerHTML = `
+        <span class="code-number">📋 ${code}</span>
+        <span class="code-time">${timestamp}</span>
+        <button class="copy-btn" onclick="copyCode('${code}')" title="复制">📋</button>
+    `;
+
+    list.insertBefore(item, list.firstChild);
+
+    // 限制记录数
+    while (list.children.length > 20) {
+        list.removeChild(list.lastChild);
+    }
+
+    // 显示提示
+    showToast(`检测到签到码: ${code}`, 'info');
+}
+
+// 复制签到码到剪贴板
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        showToast(`已复制: ${code}`, 'success');
+    }).catch(() => {
+        showToast('复制失败', 'error');
+    });
+}
+
 // 播放提示音（网页端）
 function playAlertSound() {
     try {
@@ -347,6 +387,23 @@ function playAlertSound() {
         audio.play().catch(e => console.log('播放提示音失败'));
     } catch (e) {
         console.log('创建音频失败');
+    }
+}
+
+// 更新 LLM 检测状态
+function updateLLMStatus(detected, reason) {
+    const statusEl = document.getElementById('llmStatus');
+    if (!statusEl) return;
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('zh-CN');
+
+    if (detected) {
+        statusEl.className = 'llm-status detected';
+        statusEl.innerHTML = `<span class="time">[${timeStr}]</span> ✅ 检测到签到意图`;
+    } else {
+        statusEl.className = 'llm-status not-detected';
+        statusEl.innerHTML = `<span class="time">[${timeStr}]</span> ❌ 未检测到签到意图${reason ? ': ' + reason : ''}`;
     }
 }
 

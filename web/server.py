@@ -163,6 +163,22 @@ class WebServer:
             msg["source"] = source
         await self.broadcast_status(msg)
     
+    async def send_llm_status(self, detected: bool, reason: str = ""):
+        """发送 LLM 检测状态"""
+        await self.broadcast_status({
+            "type": "llm_status",
+            "detected": detected,
+            "reason": reason
+        })
+    
+    async def send_code_detected(self, code: str, timestamp: str):
+        """发送签到码检测通知"""
+        await self.broadcast_status({
+            "type": "code_detected",
+            "code": code,
+            "timestamp": timestamp
+        })
+    
     def _load_config(self) -> dict:
         """加载配置"""
         # 如果 JSON 配置文件存在，从中加载

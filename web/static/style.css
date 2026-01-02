@@ -181,6 +181,64 @@ header .subtitle {
     font-weight: bold;
 }
 
+/* 签到码记录样式 */
+.code-log {
+    margin-top: 20px;
+    margin-bottom: 15px;
+}
+
+.code-log h3 {
+    font-size: 1rem;
+    margin-bottom: 10px;
+    color: #0ea5e9;
+}
+
+.code-list {
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.code-item {
+    background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    border-left: 4px solid #0ea5e9;
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    border-radius: 0 8px 8px 0;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.code-item .code-number {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #0284c7;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+
+.code-item .code-time {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    flex: 1;
+}
+
+.code-item .copy-btn {
+    background: #0ea5e9;
+    border: none;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+}
+
+.code-item .copy-btn:hover {
+    background: #0284c7;
+}
+
 /* 表单样式 */
 .form-group {
     margin-bottom: 20px;
@@ -442,4 +500,32 @@ footer a:hover {
 .source-tag {
     font-size: 0.85rem;
     margin-right: 5px;
+}
+
+/* LLM 检测状态 */
+.llm-status {
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-size: 0.9rem;
+    background: var(--bg-tertiary);
+    color: var(--text-muted);
+    border-left: 3px solid var(--text-muted);
+}
+
+.llm-status .time {
+    color: var(--text-muted);
+    margin-right: 8px;
+}
+
+.llm-status.detected {
+    background: rgba(46, 204, 113, 0.1);
+    color: var(--success-color);
+    border-left-color: var(--success-color);
+}
+
+.llm-status.not-detected {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--primary-color);
+    border-left-color: var(--primary-color);
 }

@@ -12,11 +12,15 @@ let mediaStream = null;
 let audioContext = null;
 let processor = null;
 let isCapturing = false;
+let enablePlayback = true;  // 是否外放声音
 
 /**
  * 开始音频捕获
  */
-async function startCapture(streamId, serverUrl) {
+async function startCapture(streamId, serverUrl, playbackEnabled = true) {
+    // 保存外放设置
+    enablePlayback = playbackEnabled;
+
     try {
         console.log('[Offscreen] 开始捕获，streamId:', streamId);
 
@@ -94,7 +98,15 @@ async function startCapture(streamId, serverUrl) {
 
         // 连接音频节点
         source.connect(processor);
-        processor.connect(audioContext.destination);
+
+        // 根据设置决定是否外放声音
+        if (enablePlayback) {
+            processor.connect(audioContext.destination);
+            console.log('[Offscreen] 声音外放已开启');
+        } else {
+            // 不连接到 destination，静音模式
+            console.log('[Offscreen] 静音模式，不外放声音');
+        }
 
         isCapturing = true;
         console.log('[Offscreen] 音频捕获已启动');
@@ -142,7 +154,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('[Offscreen] 收到消息:', message.type);
 
     if (message.type === 'START_CAPTURE_OFFSCREEN') {
-        startCapture(message.streamId, message.serverUrl)
+        startCapture(message.streamId, message.serverUrl, message.enablePlayback)
             .then(result => sendResponse(result));
         return true; // 异步响应
     }

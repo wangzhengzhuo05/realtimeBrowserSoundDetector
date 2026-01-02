@@ -173,6 +173,25 @@
             font-size: 11px;
             opacity: 0.7;
         }
+
+        .option-row {
+            margin-bottom: 12px;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            opacity: 0.9;
+        }
+
+        .option-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -203,6 +222,13 @@
     </div>
 
     <input type="text" class="server-input" id="serverUrl" value="ws://localhost:8765" placeholder="WebSocket 服务器地址">
+
+    <div class="option-row">
+        <label class="option-label">
+            <input type="checkbox" id="enablePlayback" checked>
+            <span>🔊 外放声音（可听到捕获的音频）</span>
+        </label>
+    </div>
 
     <button class="btn btn-primary" id="startBtn">▶ 开始捕获音频</button>
     <button class="btn btn-danger" id="stopBtn" disabled>■ 停止捕获</button>
