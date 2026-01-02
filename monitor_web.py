@@ -53,6 +53,7 @@ class ClassroomMonitor:
         self.is_running = False
         self.text_buffer = ""  # 用于累积识别文本
         self._restart_requested = False
+        self._loop = None  # 事件循环引用
         
     def _on_text_result(self, text: str):
         """ASR 识别结果回调"""
@@ -63,20 +64,27 @@ class ClassroomMonitor:
             # 累积文本并检查关键词
             self.text_buffer += text
             
-            # 发送到 Web 客户端
-            asyncio.create_task(self.web_server.send_recognition(text))
+            # 发送到 Web 客户端（线程安全方式）
+            self._schedule_async(self.web_server.send_recognition(text))
             
             # 检查关键词
             detected = self.keyword_alert.check_and_alert(self.text_buffer)
             
-            # 如果触发了报警，通知 Web 客户端
+            # 如果触发了报警，通知 Web 客户端并清空缓冲区
             if detected:
                 keywords = [kw for kw in config.keywords if kw in self.text_buffer]
-                asyncio.create_task(self.web_server.send_alert(keywords, text))
+                self._schedule_async(self.web_server.send_alert(keywords, text))
+                # 清空缓冲区，避免同一内容重复触发
+                self.text_buffer = ""
             
             # 保持缓冲区在合理长度（避免内存无限增长）
-            if len(self.text_buffer) > 500:
+            elif len(self.text_buffer) > 500:
                 self.text_buffer = self.text_buffer[-200:]
+    
+    def _schedule_async(self, coro):
+        """线程安全地调度异步任务"""
+        if self._loop and self._loop.is_running():
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
     
     def _on_audio_data(self, audio_data: bytes):
         """音频数据回调（来自 WebSocket）"""
@@ -91,6 +99,9 @@ class ClassroomMonitor:
     
     async def start_async(self):
         """异步启动监听"""
+        # 保存事件循环引用（用于线程安全调度）
+        self._loop = asyncio.get_running_loop()
+        
         print(f"\n{Fore.GREEN}{'='*60}")
         print("课堂监听报警系统启动中...")
         print(f"{'='*60}{Style.RESET_ALL}\n")

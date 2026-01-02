@@ -1,6 +1,6 @@
 {
   "use_cloud_api": true,
-  "api_key": "your-api-key-here",
+  "api_key": "",
   "ws_host": "localhost",
   "ws_port": 8765,
   "keywords": [
@@ -13,8 +13,6 @@
     "钉钉",
     "上课"
   ],
-  "cooldown": 5,
-  "custom_sound": null,
-  "web_host": "localhost",
-  "web_port": 8080
+  "cooldown": 0,
+  "custom_sound": null
 }

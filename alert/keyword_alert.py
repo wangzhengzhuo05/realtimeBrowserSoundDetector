@@ -57,10 +57,10 @@ class KeywordAlert:
         if not detected_keywords:
             return False
         
-        # 检查冷却时间
+        # 检查冷却时间（cooldown为0时不限制）
         with self.lock:
             current_time = time.time()
-            if current_time - self.last_alert_time < self.cooldown:
+            if self.cooldown > 0 and current_time - self.last_alert_time < self.cooldown:
                 remaining = self.cooldown - (current_time - self.last_alert_time)
                 print(f"{Fore.YELLOW}[冷却中] 检测到关键词但在冷却期内，剩余 {remaining:.1f} 秒{Style.RESET_ALL}")
                 return False
