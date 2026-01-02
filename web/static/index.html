@@ -37,8 +37,26 @@
         <!-- 实时识别结果 -->
         <section class="card">
             <h2>📝 实时识别结果</h2>
-            <div class="recognition-box" id="recognitionBox">
-                <p class="placeholder">等待语音输入...</p>
+            <!-- 单栏模式（非 Debug） -->
+            <div id="singleRecognitionView">
+                <div class="recognition-box" id="recognitionBox">
+                    <p class="placeholder">等待语音输入...</p>
+                </div>
+            </div>
+            <!-- 双栏模式（Debug） -->
+            <div id="debugRecognitionView" class="debug-view" style="display: none;">
+                <div class="debug-column">
+                    <h4>🎤 ASR 识别</h4>
+                    <div class="recognition-box" id="asrRecognitionBox">
+                        <p class="placeholder">等待 ASR 识别...</p>
+                    </div>
+                </div>
+                <div class="debug-column">
+                    <h4>🤖 Qwen2-Audio</h4>
+                    <div class="recognition-box" id="qwen2RecognitionBox">
+                        <p class="placeholder">等待 Qwen2-Audio 分析...</p>
+                    </div>
+                </div>
             </div>
             <div class="alert-log" id="alertLog">
                 <h3>🔔 报警记录</h3>
@@ -52,8 +70,37 @@
         <section class="card">
             <h2>⚙️ 系统配置</h2>
             <form id="configForm">
-                <!-- ASR 配置 -->
+                <!-- 检测模式 -->
                 <div class="form-group">
+                    <label for="detectMode">检测模式</label>
+                    <select id="detectMode" name="detectMode">
+                        <option value="asr">ASR + 关键词匹配（传统模式）</option>
+                        <option value="asr+llm">ASR + LLM 语义检测（推荐）</option>
+                        <option value="qwen2-audio">Qwen2-Audio 大模型（语音理解）</option>
+                    </select>
+                    <small>ASR+LLM: 每3秒将识别文本发给大模型检测语义意图，兼顾速度和准确性</small>
+                </div>
+
+                <!-- Debug 模式 -->
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="debugMode" name="debugMode">
+                        <span>🔧 调试模式（同时运行 ASR 和 Qwen2-Audio）</span>
+                    </label>
+                    <small>对比两种模式的识别结果，方便调试</small>
+                </div>
+
+                <!-- 静音外放 -->
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="mutePlayback" name="mutePlayback">
+                        <span>🔇 静音外放（捕获音频后不播放）</span>
+                    </label>
+                    <small>开启后浏览器捕获的音频不会通过扬声器播放</small>
+                </div>
+
+                <!-- ASR 配置 -->
+                <div class="form-group" id="asrModeGroup">
                     <label for="useCloudApi">ASR 模式</label>
                     <select id="useCloudApi" name="useCloudApi">
                         <option value="true">阿里云 DashScope API (推荐)</option>
@@ -102,6 +149,29 @@
                         <label for="customSound">自定义报警音频</label>
                         <input type="text" id="customSound" name="customSound" placeholder="留空使用默认蜂鸣声">
                         <small>支持 .wav 格式，填写绝对路径</small>
+                    </div>
+                </div>
+
+                <!-- 语义匹配配置 -->
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="enableSemantic" name="enableSemantic">
+                        启用语义模糊匹配
+                    </label>
+                    <small>使用 AI 语义模型匹配相似表达，如"签个到"≈"签到"（需要 API Key）</small>
+                </div>
+                <div class="form-row" id="semanticOptions" style="display: none;">
+                    <div class="form-group">
+                        <label for="semanticThreshold">相似度阈值</label>
+                        <input type="range" id="semanticThreshold" name="semanticThreshold" min="0.5" max="0.9"
+                            step="0.05" value="0.65">
+                        <small>当前值: <span id="thresholdValue">0.65</span>（越高越严格）</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="semanticModel">语义模型</label>
+                        <input type="text" id="semanticModel" name="semanticModel"
+                            placeholder="text-embedding-v3 或 corom-embedding">
+                        <small>可填写阿里 CoROM 模型名称，默认 text-embedding-v3</small>
                     </div>
                 </div>
 

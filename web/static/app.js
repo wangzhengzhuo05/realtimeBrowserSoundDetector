@@ -8,6 +8,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 表单提交
     document.getElementById('configForm').addEventListener('submit', saveConfig);
+
+    // 检测模式切换
+    document.getElementById('detectMode').addEventListener('change', function () {
+        const isQwen2 = this.value === 'qwen2-audio';
+        document.getElementById('asrModeGroup').style.display = isQwen2 ? 'none' : 'block';
+        document.getElementById('semanticOptions').style.display =
+            (!isQwen2 && document.getElementById('enableSemantic').checked) ? 'grid' : 'none';
+    });
+
+    // 语义匹配开关
+    document.getElementById('enableSemantic').addEventListener('change', function () {
+        const isQwen2 = document.getElementById('detectMode').value === 'qwen2-audio';
+        document.getElementById('semanticOptions').style.display =
+            (!isQwen2 && this.checked) ? 'grid' : 'none';
+    });
+
+    // Debug 模式切换视图
+    document.getElementById('debugMode').addEventListener('change', function () {
+        switchRecognitionView(this.checked);
+    });
+
+    // 阈值滑块
+    document.getElementById('semanticThreshold').addEventListener('input', function () {
+        document.getElementById('thresholdValue').textContent = this.value;
+    });
 });
 
 // 加载配置
@@ -18,6 +43,19 @@ async function loadConfig() {
 
         const config = await response.json();
 
+        // 检测模式
+        const detectMode = config.detect_mode || 'asr';
+        document.getElementById('detectMode').value = detectMode;
+        const isQwen2 = detectMode === 'qwen2-audio';
+        document.getElementById('asrModeGroup').style.display = isQwen2 ? 'none' : 'block';
+
+        // Debug 模式和静音外放
+        document.getElementById('debugMode').checked = config.debug_mode || false;
+        document.getElementById('mutePlayback').checked = config.mute_playback || false;
+
+        // 根据 Debug 模式切换视图
+        switchRecognitionView(config.debug_mode || false);
+
         // 填充表单
         document.getElementById('useCloudApi').value = config.use_cloud_api.toString();
         document.getElementById('apiKey').value = config.api_key || '';
@@ -27,9 +65,18 @@ async function loadConfig() {
         document.getElementById('cooldown').value = config.cooldown || 5;
         document.getElementById('customSound').value = config.custom_sound || '';
 
+        // 语义匹配配置
+        document.getElementById('enableSemantic').checked = config.enable_semantic || false;
+        document.getElementById('semanticThreshold').value = config.semantic_threshold || 0.65;
+        document.getElementById('thresholdValue').textContent = config.semantic_threshold || 0.65;
+        document.getElementById('semanticOptions').style.display =
+            (!isQwen2 && config.enable_semantic) ? 'grid' : 'none';
+        document.getElementById('semanticModel').value = config.semantic_model || 'text-embedding-v3';
+
         // 更新状态显示
         document.getElementById('wsStatus').textContent = `ws://${config.ws_host}:${config.ws_port}`;
-        document.getElementById('asrMode').textContent = config.use_cloud_api ? 'DashScope API' : '本地 FunASR';
+        const modeText = config.debug_mode ? 'DEBUG' : (isQwen2 ? 'Qwen2-Audio' : (config.use_cloud_api ? 'DashScope API' : '本地 FunASR'));
+        document.getElementById('asrMode').textContent = modeText;
 
         showToast('配置已加载', 'success');
     } catch (error) {
@@ -48,14 +95,23 @@ async function saveConfig(e) {
         .map(k => k.trim())
         .filter(k => k.length > 0);
 
+    const detectMode = document.getElementById('detectMode').value;
+    const debugMode = document.getElementById('debugMode').checked;
+    const mutePlayback = document.getElementById('mutePlayback').checked;
     const config = {
+        detect_mode: detectMode,
+        debug_mode: debugMode,
+        mute_playback: mutePlayback,
         use_cloud_api: document.getElementById('useCloudApi').value === 'true',
         api_key: document.getElementById('apiKey').value,
         ws_host: document.getElementById('wsHost').value,
         ws_port: parseInt(document.getElementById('wsPort').value),
         keywords: keywords,
         cooldown: parseInt(document.getElementById('cooldown').value),
-        custom_sound: document.getElementById('customSound').value || null
+        custom_sound: document.getElementById('customSound').value || null,
+        enable_semantic: document.getElementById('enableSemantic').checked,
+        semantic_threshold: parseFloat(document.getElementById('semanticThreshold').value),
+        semantic_model: document.getElementById('semanticModel').value || 'text-embedding-v3'
     };
 
     try {
@@ -72,7 +128,9 @@ async function saveConfig(e) {
 
         // 更新状态显示
         document.getElementById('wsStatus').textContent = `ws://${config.ws_host}:${config.ws_port}`;
-        document.getElementById('asrMode').textContent = config.use_cloud_api ? 'DashScope API' : '本地 FunASR';
+        const isQwen2 = detectMode === 'qwen2-audio';
+        const modeText = debugMode ? 'DEBUG' : (isQwen2 ? 'Qwen2-Audio' : (config.use_cloud_api ? 'DashScope API' : '本地 FunASR'));
+        document.getElementById('asrMode').textContent = modeText;
 
     } catch (error) {
         console.error('保存配置失败:', error);
@@ -167,10 +225,10 @@ function connectStatusWebSocket() {
 function handleStatusMessage(data) {
     switch (data.type) {
         case 'recognition':
-            updateRecognition(data.text);
+            updateRecognition(data.text, data.source);
             break;
         case 'alert':
-            addAlertRecord(data.keywords, data.text);
+            addAlertRecord(data.keywords, data.text, data.source);
             break;
         case 'status':
             updateStatus(data.status, data.message);
@@ -187,9 +245,40 @@ function updateStatus(status, text) {
     statusText.textContent = text;
 }
 
+// 切换识别视图（Debug 双栏/普通单栏）
+function switchRecognitionView(isDebugMode) {
+    const singleView = document.getElementById('singleRecognitionView');
+    const debugView = document.getElementById('debugRecognitionView');
+
+    if (isDebugMode) {
+        singleView.style.display = 'none';
+        debugView.style.display = 'grid';
+    } else {
+        singleView.style.display = 'block';
+        debugView.style.display = 'none';
+    }
+}
+
 // 更新识别结果
-function updateRecognition(text) {
-    const box = document.getElementById('recognitionBox');
+function updateRecognition(text, source) {
+    const isDebugMode = document.getElementById('debugMode').checked;
+    let box;
+
+    if (isDebugMode) {
+        // Debug 模式：根据来源选择不同的框
+        switchRecognitionView(true);
+        if (source === 'qwen2-audio') {
+            box = document.getElementById('qwen2RecognitionBox');
+        } else {
+            // ASR 或默认
+            box = document.getElementById('asrRecognitionBox');
+        }
+    } else {
+        // 普通模式：使用单栏
+        switchRecognitionView(false);
+        box = document.getElementById('recognitionBox');
+    }
+
     const placeholder = box.querySelector('.placeholder');
     if (placeholder) {
         placeholder.remove();
@@ -216,7 +305,7 @@ function updateRecognition(text) {
 }
 
 // 添加报警记录
-function addAlertRecord(keywords, text) {
+function addAlertRecord(keywords, text, source) {
     const list = document.getElementById('alertList');
     const placeholder = list.querySelector('.placeholder');
     if (placeholder) {
@@ -229,8 +318,13 @@ function addAlertRecord(keywords, text) {
     const now = new Date();
     const timeStr = now.toLocaleTimeString('zh-CN');
 
+    // Debug 模式下显示来源
+    const isDebugMode = document.getElementById('debugMode').checked;
+    const sourceTag = isDebugMode && source ? `<span class="source-tag ${source}">${source === 'qwen2-audio' ? '🤖' : '🎤'}</span>` : '';
+
     item.innerHTML = `
         <span class="time">[${timeStr}]</span>
+        ${sourceTag}
         <span class="keyword">${keywords.join(', ')}</span>
         <span class="text">${text.substring(0, 50)}${text.length > 50 ? '...' : ''}</span>
     `;

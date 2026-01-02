@@ -1,0 +1,26 @@
+{
+    "use_cloud_api": true,
+    "api_key": "",
+    "ws_host": "localhost",
+    "ws_port": 8765,
+    "keywords": [
+        "签到",
+        "点名",
+        "打开手机",
+        "扫码",
+        "考勤",
+        "输入码",
+        "钉钉",
+        "上课"
+    ],
+    "cooldown": 5,
+    "custom_sound": null,
+    "enable_semantic": false,
+    "semantic_threshold": 0.65,
+    "semantic_model": "text-embedding-v3",
+    "detect_mode": "asr+llm",
+    "debug_mode": false,
+    "mute_playback": false,
+    "llm_detect_interval": 3.0,
+    "llm_model": "qwen-turbo"
+}

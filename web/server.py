@@ -142,27 +142,43 @@ class WebServer:
         # 移除已关闭的客户端
         self.status_clients -= closed_clients
     
-    async def send_recognition(self, text: str):
+    async def send_recognition(self, text: str, source: str = None):
         """发送识别结果"""
-        await self.broadcast_status({
+        msg = {
             "type": "recognition",
             "text": text
-        })
+        }
+        if source:
+            msg["source"] = source
+        await self.broadcast_status(msg)
     
-    async def send_alert(self, keywords: list, text: str):
+    async def send_alert(self, keywords: list, text: str, source: str = None):
         """发送报警通知"""
-        await self.broadcast_status({
+        msg = {
             "type": "alert",
             "keywords": keywords,
             "text": text
-        })
+        }
+        if source:
+            msg["source"] = source
+        await self.broadcast_status(msg)
     
     def _load_config(self) -> dict:
         """加载配置"""
         # 如果 JSON 配置文件存在，从中加载
         if self.config_file.exists():
             with open(self.config_file, "r", encoding="utf-8") as f:
-                return json.load(f)
+                cfg = json.load(f)
+            # 填充新增默认字段
+            if "semantic_model" not in cfg:
+                cfg["semantic_model"] = "text-embedding-v3"
+            if "detect_mode" not in cfg:
+                cfg["detect_mode"] = "asr"
+            if "debug_mode" not in cfg:
+                cfg["debug_mode"] = False
+            if "mute_playback" not in cfg:
+                cfg["mute_playback"] = False
+            return cfg
         
         # 否则从 config.py 加载默认值
         try:
@@ -196,7 +212,13 @@ class WebServer:
             "ws_port": data.get("ws_port", 8765),
             "keywords": data.get("keywords", []),
             "cooldown": data.get("cooldown", 5),
-            "custom_sound": data.get("custom_sound")
+            "custom_sound": data.get("custom_sound"),
+            "enable_semantic": data.get("enable_semantic", False),
+            "semantic_threshold": data.get("semantic_threshold", 0.65),
+            "semantic_model": data.get("semantic_model", "text-embedding-v3"),
+            "detect_mode": data.get("detect_mode", "asr"),
+            "debug_mode": data.get("debug_mode", False),
+            "mute_playback": data.get("mute_playback", False)
         }
         
         with open(self.config_file, "w", encoding="utf-8") as f:

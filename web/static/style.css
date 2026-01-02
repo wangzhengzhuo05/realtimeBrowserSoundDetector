@@ -376,3 +376,70 @@ footer a:hover {
     background: var(--warning-color);
     color: var(--text-color);
 }
+
+/* Checkbox 对齐样式 */
+.checkbox-group {
+    margin-bottom: 15px;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.checkbox-label span {
+    line-height: 1.4;
+}
+
+.checkbox-group small {
+    margin-left: 28px;
+}
+
+/* Debug 双栏视图 */
+.debug-view {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.debug-column h4 {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+}
+
+.debug-column:first-child h4 {
+    color: var(--primary-color);
+}
+
+.debug-column:last-child h4 {
+    color: #9b59b6;
+}
+
+.debug-view .recognition-box {
+    min-height: 100px;
+    max-height: 150px;
+}
+
+@media (max-width: 700px) {
+    .debug-view {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 来源标签 */
+.source-tag {
+    font-size: 0.85rem;
+    margin-right: 5px;
+}

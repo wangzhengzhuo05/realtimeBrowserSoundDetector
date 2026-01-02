@@ -21,7 +21,15 @@ DEFAULT_CONFIG = {
     "cooldown": 5,
     "custom_sound": None,
     "web_host": "localhost",
-    "web_port": 8080
+    "web_port": 8080,
+    "enable_semantic": False,
+    "semantic_threshold": 0.65,
+    "semantic_model": "text-embedding-v3",
+    "detect_mode": "asr",
+    "debug_mode": False,
+    "mute_playback": False,
+    "llm_detect_interval": 3.0,
+    "llm_model": "qwen-turbo"
 }
 
 
@@ -128,6 +136,43 @@ class ConfigManager:
     @property
     def web_port(self) -> int:
         return self._config.get("web_port", 8080)
+    
+    @property
+    def enable_semantic(self) -> bool:
+        return self._config.get("enable_semantic", False)
+    
+    @property
+    def semantic_threshold(self) -> float:
+        return self._config.get("semantic_threshold", 0.65)
+
+    @property
+    def semantic_model(self) -> str:
+        return self._config.get("semantic_model", "text-embedding-v3")
+    
+    @property
+    def detect_mode(self) -> str:
+        """检测模式: asr, asr+llm, qwen2-audio"""
+        return self._config.get("detect_mode", "asr")
+    
+    @property
+    def debug_mode(self) -> bool:
+        """Debug模式：同时运行 ASR 和 Qwen2-Audio 进行对比"""
+        return self._config.get("debug_mode", False)
+    
+    @property
+    def mute_playback(self) -> bool:
+        """静音外放：捕获音频后不通过扬声器播放"""
+        return self._config.get("mute_playback", False)
+    
+    @property
+    def llm_detect_interval(self) -> float:
+        """LLM 检测间隔（秒）"""
+        return self._config.get("llm_detect_interval", 3.0)
+    
+    @property
+    def llm_model(self) -> str:
+        """LLM 模型名称"""
+        return self._config.get("llm_model", "qwen-turbo")
     
     def to_dict(self) -> dict:
         """返回配置字典"""
