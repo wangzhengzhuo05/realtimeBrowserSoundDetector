@@ -148,7 +148,10 @@
                         <small>设为 0 表示不限制</small>
                     </div>
                     <div class="form-group">
-                        <label for="customSound">自定义报警音频</label>
+                        <div class="label-with-status">
+                            <label for="customSound">自定义报警音频</label>
+                            <span class="current-sound-badge" id="currentSound">🔔 默认蜂鸣声</span>
+                        </div>
                         <div class="input-with-button">
                             <input type="text" id="customSound" name="customSound" placeholder="绝对路径或 URL，留空使用默认蜂鸣声">
                             <button type="button" class="btn-small" onclick="validateSound()">验证</button>

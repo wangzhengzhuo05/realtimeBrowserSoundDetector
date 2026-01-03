@@ -40,6 +40,9 @@ class WebServer:
         # 重启回调
         self.restart_callback: Callable = None
         
+        # 配置更新回调（用于热更新运行中的组件）
+        self.config_update_callback: Callable = None
+        
         # 设置路由
         self._setup_routes()
     
@@ -76,6 +79,14 @@ class WebServer:
         try:
             data = await request.json()
             self._save_config(data)
+            
+            # 通知配置更新回调（用于热更新运行中的组件）
+            if self.config_update_callback:
+                try:
+                    self.config_update_callback(data)
+                except Exception as e:
+                    print(f"{Fore.YELLOW}[警告] 配置热更新失败: {e}{Style.RESET_ALL}")
+            
             return web.json_response({"success": True, "message": "配置已保存"})
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
@@ -329,6 +340,10 @@ class WebServer:
     def set_restart_callback(self, callback: Callable):
         """设置重启回调"""
         self.restart_callback = callback
+    
+    def set_config_update_callback(self, callback: Callable):
+        """设置配置更新回调（用于热更新运行中的组件）"""
+        self.config_update_callback = callback
     
     async def start(self):
         """启动服务器"""

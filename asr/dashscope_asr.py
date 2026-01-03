@@ -107,6 +107,14 @@ class DashScopeASR(ASREngine):
                 try:
                     audio_data = self.audio_queue.get(timeout=0.1)
                     
+                    # 验证音频数据有效性
+                    if not audio_data or len(audio_data) == 0:
+                        continue
+                    
+                    # 确保音频数据长度合理（至少160字节，约10ms的16kHz单声道PCM）
+                    if len(audio_data) < 160:
+                        continue
+                    
                     if audio_data and self.recognition and self.connection_alive:
                         try:
                             self.recognition.send_audio_frame(audio_data)
@@ -178,6 +186,10 @@ class DashScopeASR(ASREngine):
     def feed_audio(self, audio_data: bytes):
         """发送音频数据到队列"""
         if self.is_running:
+            # 验证音频数据
+            if not audio_data or len(audio_data) == 0:
+                return
+            
             # 限制队列大小，避免积压过多
             if self.audio_queue.qsize() < 100:
                 self.audio_queue.put(audio_data)

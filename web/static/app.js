@@ -1,6 +1,9 @@
 // API 基础地址
 const API_BASE = '';
 
+// 自动保存防抖计时器
+let autoSaveTimer = null;
+
 // 页面加载时初始化
 document.addEventListener('DOMContentLoaded', () => {
     loadConfig();
@@ -15,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('asrModeGroup').style.display = isQwen2 ? 'none' : 'block';
         document.getElementById('semanticOptions').style.display =
             (!isQwen2 && document.getElementById('enableSemantic').checked) ? 'grid' : 'none';
+        triggerAutoSave();
     });
 
     // 语义匹配开关
@@ -22,18 +26,102 @@ document.addEventListener('DOMContentLoaded', () => {
         const isQwen2 = document.getElementById('detectMode').value === 'qwen2-audio';
         document.getElementById('semanticOptions').style.display =
             (!isQwen2 && this.checked) ? 'grid' : 'none';
+        triggerAutoSave();
     });
 
     // Debug 模式切换视图
     document.getElementById('debugMode').addEventListener('change', function () {
         switchRecognitionView(this.checked);
+        triggerAutoSave();
     });
 
     // 阈值滑块
     document.getElementById('semanticThreshold').addEventListener('input', function () {
         document.getElementById('thresholdValue').textContent = this.value;
+        triggerAutoSave();
     });
+
+    // 为其他表单元素添加自动保存
+    setupAutoSave();
 });
+
+// 设置自动保存监听
+function setupAutoSave() {
+    const fields = [
+        'useCloudApi', 'apiKey', 'wsHost', 'wsPort',
+        'keywords', 'cooldown', 'customSound', 'semanticModel'
+    ];
+
+    fields.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            const eventType = (element.tagName === 'SELECT' || element.type === 'checkbox') ? 'change' : 'input';
+            element.addEventListener(eventType, triggerAutoSave);
+        }
+    });
+}
+
+// 触发自动保存（防抖）
+function triggerAutoSave() {
+    // 清除之前的计时器
+    if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+    }
+
+    // 1秒后自动保存
+    autoSaveTimer = setTimeout(async () => {
+        await saveConfigAuto();
+    }, 1000);
+}
+
+// 自动保存配置（静默保存，无toast提示）
+async function saveConfigAuto() {
+    const keywordsText = document.getElementById('keywords').value;
+    const keywords = keywordsText
+        .split(/[,\n，]/)
+        .map(k => k.trim())
+        .filter(k => k.length > 0);
+
+    const detectMode = document.getElementById('detectMode').value;
+    const debugMode = document.getElementById('debugMode').checked;
+    const config = {
+        detect_mode: detectMode,
+        debug_mode: debugMode,
+        use_cloud_api: document.getElementById('useCloudApi').value === 'true',
+        api_key: document.getElementById('apiKey').value,
+        ws_host: document.getElementById('wsHost').value,
+        ws_port: parseInt(document.getElementById('wsPort').value),
+        keywords: keywords,
+        cooldown: parseInt(document.getElementById('cooldown').value),
+        custom_sound: document.getElementById('customSound').value || null,
+        enable_semantic: document.getElementById('enableSemantic').checked,
+        semantic_threshold: parseFloat(document.getElementById('semanticThreshold').value),
+        semantic_model: document.getElementById('semanticModel').value || 'text-embedding-v3'
+    };
+
+    try {
+        const response = await fetch(`${API_BASE}/api/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+
+        if (!response.ok) throw new Error('自动保存失败');
+
+        // 静默保存，只在控制台显示
+        console.log('[自动保存] 配置已保存');
+
+        // 更新状态显示
+        document.getElementById('wsStatus').textContent = `ws://${config.ws_host}:${config.ws_port}`;
+        const isQwen2 = detectMode === 'qwen2-audio';
+        const modeText = debugMode ? 'DEBUG' : (isQwen2 ? 'Qwen2-Audio' : (config.use_cloud_api ? 'DashScope API' : '本地 FunASR'));
+        document.getElementById('asrMode').textContent = modeText;
+        updateCurrentSoundDisplay(config.custom_sound);
+
+    } catch (error) {
+        console.error('[自动保存] 保存失败:', error);
+    }
+}
 
 // 加载配置
 async function loadConfig() {
@@ -62,7 +150,8 @@ async function loadConfig() {
         document.getElementById('wsPort').value = config.ws_port || 8765;
         document.getElementById('keywords').value = (config.keywords || []).join('\n');
         document.getElementById('cooldown').value = config.cooldown || 5;
-        document.getElementById('customSound').value = config.custom_sound || '';
+        const customSoundValue = config.custom_sound === null ? '' : (config.custom_sound || '');
+        document.getElementById('customSound').value = customSoundValue;
 
         // 语义匹配配置
         document.getElementById('enableSemantic').checked = config.enable_semantic || false;
@@ -76,6 +165,9 @@ async function loadConfig() {
         document.getElementById('wsStatus').textContent = `ws://${config.ws_host}:${config.ws_port}`;
         const modeText = config.debug_mode ? 'DEBUG' : (isQwen2 ? 'Qwen2-Audio' : (config.use_cloud_api ? 'DashScope API' : '本地 FunASR'));
         document.getElementById('asrMode').textContent = modeText;
+
+        // 更新当前音源显示
+        updateCurrentSoundDisplay(config.custom_sound);
 
         showToast('配置已加载', 'success');
     } catch (error) {
@@ -129,9 +221,30 @@ async function saveConfig(e) {
         const modeText = debugMode ? 'DEBUG' : (isQwen2 ? 'Qwen2-Audio' : (config.use_cloud_api ? 'DashScope API' : '本地 FunASR'));
         document.getElementById('asrMode').textContent = modeText;
 
+        // 更新当前音源显示
+        updateCurrentSoundDisplay(config.custom_sound);
+
+        // 保存成功后重新加载配置，确保前端和服务器状态同步
+        await loadConfig();
+
     } catch (error) {
         console.error('保存配置失败:', error);
         showToast('保存配置失败: ' + error.message, 'error');
+    }
+}
+
+// 更新当前音源显示
+function updateCurrentSoundDisplay(customSound) {
+    const soundDisplayEl = document.getElementById('currentSound');
+
+    if (!customSound || customSound === null || customSound === '') {
+        soundDisplayEl.textContent = '🔔 默认蜂鸣声';
+        soundDisplayEl.title = '使用系统内置蜂鸣声';
+    } else {
+        // 提取文件名
+        const fileName = customSound.split(/[/\\]/).pop();
+        soundDisplayEl.textContent = `🔊 ${fileName}`;
+        soundDisplayEl.title = customSound;
     }
 }
 
@@ -250,6 +363,12 @@ function selectSound(path) {
     pathInput.value = path;
     hideSoundPicker();
 
+    // 立即更新前端音源显示（预览）
+    updateCurrentSoundDisplay(path);
+
+    // 触发自动保存
+    triggerAutoSave();
+
     if (!path) {
         resultEl.textContent = '✅ 已选择默认蜂鸣声';
         resultEl.style.color = '#10b981';
@@ -300,11 +419,13 @@ function connectStatusWebSocket() {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/status`;
 
+    console.log('[WebSocket] 尝试连接:', wsUrl);
+
     try {
         statusWs = new WebSocket(wsUrl);
 
         statusWs.onopen = () => {
-            console.log('状态 WebSocket 已连接');
+            console.log('[WebSocket] 状态 WebSocket 已连接');
             updateStatus('online', '运行中');
             if (reconnectTimer) {
                 clearTimeout(reconnectTimer);
@@ -315,14 +436,15 @@ function connectStatusWebSocket() {
         statusWs.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
+                console.log('[WebSocket] 收到消息:', data);
                 handleStatusMessage(data);
             } catch (e) {
-                console.error('解析状态消息失败:', e);
+                console.error('[WebSocket] 解析状态消息失败:', e);
             }
         };
 
-        statusWs.onclose = () => {
-            console.log('状态 WebSocket 已断开');
+        statusWs.onclose = (event) => {
+            console.log('[WebSocket] 状态 WebSocket 已断开, code:', event.code, 'reason:', event.reason);
             updateStatus('offline', '已断开');
             // 自动重连
             if (!reconnectTimer) {
@@ -331,12 +453,12 @@ function connectStatusWebSocket() {
         };
 
         statusWs.onerror = (error) => {
-            console.error('状态 WebSocket 错误:', error);
+            console.error('[WebSocket] 状态 WebSocket 错误:', error);
             updateStatus('error', '连接错误');
         };
 
     } catch (e) {
-        console.error('创建 WebSocket 失败:', e);
+        console.error('[WebSocket] 创建 WebSocket 失败:', e);
         updateStatus('error', '连接失败');
     }
 }

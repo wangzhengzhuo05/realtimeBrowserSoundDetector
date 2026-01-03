@@ -44,8 +44,12 @@ class AudioWebSocketServer:
         try:
             async for message in websocket:
                 # 接收音频数据 (bytes)
-                if isinstance(message, bytes) and self.audio_callback:
-                    self.audio_callback(message)
+                if isinstance(message, bytes):
+                    # 验证音频数据有效性
+                    if len(message) > 0 and self.audio_callback:
+                        self.audio_callback(message)
+                    elif len(message) == 0:
+                        print(f"{Fore.YELLOW}[WS] 警告: 收到空音频数据{Style.RESET_ALL}")
                     
         except websockets.exceptions.ConnectionClosed:
             print(f"{Fore.YELLOW}[WS] 客户端 #{client_id} 断开连接{Style.RESET_ALL}")

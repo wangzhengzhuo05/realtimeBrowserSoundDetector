@@ -143,6 +143,7 @@ class ClassroomMonitor:
         # 初始化 Web 控制面板
         self.web_server = WebServer(config.web_host, config.web_port)
         self.web_server.set_restart_callback(self._handle_restart)
+        self.web_server.set_config_update_callback(self._handle_config_update)
         
         # 初始化签到码记录器（4位及以上连续数字）
         self.code_recorder = CodeRecorder(save_path="detected_codes.json", min_digits=4)
@@ -288,6 +289,25 @@ class ClassroomMonitor:
         self._restart_requested = True
         await self.stop_async()
     
+    def _handle_config_update(self, data: dict):
+        """处理配置热更新（无需重启即可生效的配置）"""
+        # 更新报警音源
+        custom_sound = data.get("custom_sound")
+        if self.keyword_alert:
+            self.keyword_alert.update_sound(custom_sound)
+        
+        # 更新关键词（如果支持）
+        keywords = data.get("keywords", [])
+        if self.keyword_alert and keywords:
+            self.keyword_alert.keywords = keywords
+            print(f"{Fore.CYAN}[信息] 关键词已更新: {', '.join(keywords)}{Style.RESET_ALL}")
+        
+        # 更新冷却时间
+        cooldown = data.get("cooldown")
+        if self.keyword_alert and cooldown is not None:
+            self.keyword_alert.cooldown = cooldown
+            print(f"{Fore.CYAN}[信息] 冷却时间已更新: {cooldown} 秒{Style.RESET_ALL}")
+
     async def start_async(self):
         """异步启动监听"""
         # 保存事件循环引用（用于线程安全调度）

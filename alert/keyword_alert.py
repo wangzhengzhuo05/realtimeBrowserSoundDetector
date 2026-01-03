@@ -61,6 +61,25 @@ class KeywordAlert:
         # 初始化语义匹配器
         if enable_semantic and api_key:
             self.semantic_matcher = SemanticMatcher(api_key, keywords, semantic_threshold, semantic_model)
+    
+    def update_sound(self, custom_sound: str = None):
+        """
+        动态更新报警音源
+        :param custom_sound: 新的自定义音频文件路径，None 或空字符串表示使用默认蜂鸣声
+        """
+        old_sound = self.custom_sound
+        self.custom_sound = custom_sound if custom_sound else None
+        
+        # 验证新的音频文件
+        if self.custom_sound:
+            if os.path.exists(self.custom_sound):
+                print(f"{Fore.GREEN}[信息] 报警音源已更新: {self.custom_sound}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.YELLOW}[警告] 自定义音频文件不存在: {self.custom_sound}，将使用默认蜂鸣声{Style.RESET_ALL}")
+                self.custom_sound = None
+        else:
+            if old_sound:
+                print(f"{Fore.CYAN}[信息] 报警音源已切换为默认蜂鸣声{Style.RESET_ALL}")
         
     def check_and_alert(self, text: str) -> bool:
         """
