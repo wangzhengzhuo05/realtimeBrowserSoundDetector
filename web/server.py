@@ -169,12 +169,13 @@ class WebServer:
                 exts = {".wav", ".mp3", ".ogg", ".m4a", ".flac"}
                 for file in sounds_dir.iterdir():
                     if file.is_file() and file.suffix.lower() in exts:
+                        # 使用相对路径，确保跨电脑兼容
                         rel_path = f"assets/custom_sounds/{file.name}"
                         size_mb = file.stat().st_size / (1024 * 1024)
                         sounds.append({
                             "name": file.name,
-                            "path": str(file.absolute()).replace("\\", "/"),
-                            "relative_path": rel_path,
+                            "path": rel_path,  # 使用相对路径
+                            "absolute_path": str(file.absolute()).replace("\\", "/"),
                             "size": f"{size_mb:.2f} MB",
                             "format": file.suffix[1:].upper()
                         })

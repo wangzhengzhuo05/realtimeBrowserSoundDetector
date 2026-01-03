@@ -10,11 +10,15 @@ import threading
 import winsound
 import os
 import os.path
+from pathlib import Path
 from typing import List, Optional
 
 from colorama import Fore, Style
 
 from .semantic_matcher import SemanticMatcher
+
+# 项目根目录（用于解析相对路径）
+PROJECT_ROOT = Path(__file__).parent.parent
 
 # 可选的多格式播放支持（mp3/ogg/m4a/flac 等依赖系统解码能力）
 try:
@@ -44,40 +48,78 @@ class KeywordAlert:
         """
         self.keywords = keywords
         self.cooldown = cooldown
-        self.custom_sound = custom_sound
+        self.custom_sound = None
         self.last_alert_time = 0
         self.lock = threading.Lock()
         self.enable_semantic = enable_semantic
         self.semantic_matcher: Optional[SemanticMatcher] = None
         
-        # 验证自定义音频文件
-        if self.custom_sound:
-            if os.path.exists(self.custom_sound):
-                print(f"{Fore.GREEN}[信息] 已加载自定义报警音频: {self.custom_sound}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.YELLOW}[警告] 自定义音频文件不存在: {self.custom_sound}，将使用默认蜂鸣声{Style.RESET_ALL}")
-                self.custom_sound = None
+        # 验证并设置自定义音频文件
+        self._set_custom_sound(custom_sound)
         
         # 初始化语义匹配器
         if enable_semantic and api_key:
             self.semantic_matcher = SemanticMatcher(api_key, keywords, semantic_threshold, semantic_model)
     
+    def _resolve_sound_path(self, sound_path: str) -> Optional[str]:
+        """
+        解析音频文件路径，支持绝对路径和相对路径
+        :param sound_path: 原始路径（可以是绝对路径或相对于项目根目录的路径）
+        :return: 有效的绝对路径，如果文件不存在则返回 None
+        """
+        if not sound_path:
+            return None
+        
+        # 1. 首先尝试作为绝对路径
+        if os.path.isabs(sound_path) and os.path.exists(sound_path):
+            return sound_path
+        
+        # 2. 尝试作为相对路径（相对于项目根目录）
+        relative_path = PROJECT_ROOT / sound_path
+        if relative_path.exists():
+            return str(relative_path)
+        
+        # 3. 如果路径包含 assets/custom_sounds，尝试提取文件名并在默认目录查找
+        if "custom_sounds" in sound_path:
+            filename = os.path.basename(sound_path)
+            default_path = PROJECT_ROOT / "assets" / "custom_sounds" / filename
+            if default_path.exists():
+                return str(default_path)
+        
+        # 4. 路径无效
+        return None
+    
+    def _set_custom_sound(self, custom_sound: str = None):
+        """
+        设置并验证自定义音频文件
+        :param custom_sound: 音频文件路径
+        """
+        if not custom_sound:
+            self.custom_sound = None
+            return
+        
+        resolved_path = self._resolve_sound_path(custom_sound)
+        if resolved_path:
+            self.custom_sound = resolved_path
+            print(f"{Fore.GREEN}[信息] 已加载自定义报警音频: {self.custom_sound}{Style.RESET_ALL}")
+        else:
+            print(f"{Fore.YELLOW}[警告] 自定义音频文件不存在: {custom_sound}，将使用默认蜂鸣声{Style.RESET_ALL}")
+            self.custom_sound = None
+
     def update_sound(self, custom_sound: str = None):
         """
         动态更新报警音源
         :param custom_sound: 新的自定义音频文件路径，None 或空字符串表示使用默认蜂鸣声
         """
         old_sound = self.custom_sound
-        self.custom_sound = custom_sound if custom_sound else None
         
-        # 验证新的音频文件
-        if self.custom_sound:
-            if os.path.exists(self.custom_sound):
+        if custom_sound:
+            # 使用路径解析逻辑
+            self._set_custom_sound(custom_sound)
+            if self.custom_sound:
                 print(f"{Fore.GREEN}[信息] 报警音源已更新: {self.custom_sound}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.YELLOW}[警告] 自定义音频文件不存在: {self.custom_sound}，将使用默认蜂鸣声{Style.RESET_ALL}")
-                self.custom_sound = None
         else:
+            self.custom_sound = None
             if old_sound:
                 print(f"{Fore.CYAN}[信息] 报警音源已切换为默认蜂鸣声{Style.RESET_ALL}")
         
