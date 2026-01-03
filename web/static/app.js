@@ -184,6 +184,80 @@ async function validateSound() {
     }
 }
 
+// 显示音源选择器
+async function showSoundPicker() {
+    const picker = document.getElementById('soundPicker');
+    const listEl = document.getElementById('soundList');
+
+    picker.style.display = 'block';
+    listEl.innerHTML = '<p class="placeholder">加载中...</p>';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/list-sounds`);
+        if (!res.ok) throw new Error('加载音源列表失败');
+
+        const data = await res.json();
+
+        listEl.innerHTML = '';
+
+        // 添加默认音源选项
+        const defaultItem = document.createElement('div');
+        defaultItem.className = 'sound-item default-sound';
+        defaultItem.innerHTML = `
+            <div class="sound-info">
+                <strong>🔔 默认蜂鸣声</strong>
+                <small>系统内置音源</small>
+            </div>
+            <button type="button" class="btn-small" onclick='selectSound("")'>选择</button>
+        `;
+        listEl.appendChild(defaultItem);
+
+        if (data.sounds && data.sounds.length > 0) {
+            data.sounds.forEach(sound => {
+                const item = document.createElement('div');
+                item.className = 'sound-item';
+                item.innerHTML = `
+                    <div class="sound-info">
+                        <strong>🔊 ${sound.name}</strong>
+                        <small>${sound.format} · ${sound.size}</small>
+                    </div>
+                    <button type="button" class="btn-small" onclick='selectSound(${JSON.stringify(sound.path)})'>选择</button>
+                `;
+                listEl.appendChild(item);
+            });
+        } else {
+            const emptyHint = document.createElement('p');
+            emptyHint.className = 'placeholder';
+            emptyHint.innerHTML = '暂无自定义音源<br><small>请将音频文件放入 assets/custom_sounds/ 目录</small>';
+            listEl.appendChild(emptyHint);
+        }
+    } catch (e) {
+        console.error('加载音源列表失败:', e);
+        listEl.innerHTML = '<p class="placeholder" style="color: #ef4444;">❌ ' + e.message + '</p>';
+    }
+}
+
+// 隐藏音源选择器
+function hideSoundPicker() {
+    document.getElementById('soundPicker').style.display = 'none';
+}
+
+// 选择音源
+function selectSound(path) {
+    const pathInput = document.getElementById('customSound');
+    const resultEl = document.getElementById('soundValidationResult');
+
+    pathInput.value = path;
+    hideSoundPicker();
+
+    if (!path) {
+        resultEl.textContent = '✅ 已选择默认蜂鸣声';
+        resultEl.style.color = '#10b981';
+    } else {
+        validateSound();
+    }
+}
+
 // 重启服务
 async function restartService() {
     if (!confirm('确定要重启服务吗？这将断开所有连接。')) return;

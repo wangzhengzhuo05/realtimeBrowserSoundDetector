@@ -152,8 +152,19 @@
                         <div class="input-with-button">
                             <input type="text" id="customSound" name="customSound" placeholder="绝对路径或 URL，留空使用默认蜂鸣声">
                             <button type="button" class="btn-small" onclick="validateSound()">验证</button>
+                            <button type="button" class="btn-small" onclick="showSoundPicker()"
+                                title="选择预设音源">📁</button>
                         </div>
                         <small id="soundValidationResult">支持 wav/mp3/ogg/m4a/flac 格式</small>
+                        <div id="soundPicker" class="sound-picker" style="display: none;">
+                            <div class="sound-picker-header">
+                                <strong>选择音源</strong>
+                                <button type="button" class="btn-close" onclick="hideSoundPicker()">×</button>
+                            </div>
+                            <div id="soundList" class="sound-list">
+                                <p class="placeholder">加载中...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

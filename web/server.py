@@ -49,6 +49,7 @@ class WebServer:
         self.app.router.add_post("/api/config", self._handle_save_config)
         self.app.router.add_post("/api/restart", self._handle_restart)
         self.app.router.add_post("/api/validate-sound", self._handle_validate_sound)
+        self.app.router.add_get("/api/list-sounds", self._handle_list_sounds)
         self.app.router.add_get("/ws/status", self._handle_status_ws)
         
         # 静态文件
@@ -146,6 +147,30 @@ class WebServer:
             
         except Exception as e:
             return web.json_response({"valid": False, "message": f"验证失败: {str(e)}"})
+    
+    async def _handle_list_sounds(self, request: web.Request) -> web.Response:
+        """列出可用的自定义音频文件"""
+        try:
+            sounds_dir = Path(__file__).parent.parent / "assets" / "custom_sounds"
+            sounds = []
+            
+            if sounds_dir.exists():
+                exts = {".wav", ".mp3", ".ogg", ".m4a", ".flac"}
+                for file in sounds_dir.iterdir():
+                    if file.is_file() and file.suffix.lower() in exts:
+                        rel_path = f"assets/custom_sounds/{file.name}"
+                        size_mb = file.stat().st_size / (1024 * 1024)
+                        sounds.append({
+                            "name": file.name,
+                            "path": str(file.absolute()).replace("\\", "/"),
+                            "relative_path": rel_path,
+                            "size": f"{size_mb:.2f} MB",
+                            "format": file.suffix[1:].upper()
+                        })
+            
+            return web.json_response({"sounds": sounds})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
     
     async def _do_restart(self):
         """执行重启"""
