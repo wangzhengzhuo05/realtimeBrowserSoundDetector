@@ -54,7 +54,7 @@ def main():
     print(f"{Fore.CYAN}报警冷却时间: {config.cooldown} 秒{Style.RESET_ALL}")
     
     # 检查 API Key（如果使用云端模式）
-        if config.use_cloud_api and not config.api_key:
+    if config.use_cloud_api and not config.api_key:
         print(f"\n{Fore.YELLOW}[提示] 请先配置 DashScope API Key！{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}访问 http://{config.web_host}:{config.web_port} 进行配置{Style.RESET_ALL}")
     
