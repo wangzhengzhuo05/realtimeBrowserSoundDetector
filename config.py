@@ -18,8 +18,9 @@ API Key 获取方式 (阿里云 DashScope):
 USE_CLOUD_API = True
 
 # 阿里云 DashScope API Key (模式 A 需要)
-# 请替换为你自己的 API Key
-DASHSCOPE_API_KEY = "your-api-key-here"
+# 从环境变量读取，避免将密钥写入仓库
+import os
+DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
 
 
 # ==================== WebSocket 服务器配置 ====================

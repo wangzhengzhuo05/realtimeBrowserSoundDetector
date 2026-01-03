@@ -5,6 +5,7 @@
 """
 
 import json
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -107,7 +108,7 @@ class ConfigManager:
     
     @property
     def api_key(self) -> str:
-        return self._config.get("api_key", "")
+        return self._config.get("api_key", "") or os.getenv("DASHSCOPE_API_KEY", "")
     
     @property
     def ws_host(self) -> str:
