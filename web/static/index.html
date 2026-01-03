@@ -149,18 +149,21 @@
                     </div>
                     <div class="form-group">
                         <label for="customSound">自定义报警音频</label>
-                        <input type="text" id="customSound" name="customSound" placeholder="留空使用默认蜂鸣声">
-                        <small>支持 .wav 格式，填写绝对路径</small>
+                        <div class="input-with-button">
+                            <input type="text" id="customSound" name="customSound" placeholder="绝对路径或 URL，留空使用默认蜂鸣声">
+                            <button type="button" class="btn-small" onclick="validateSound()">验证</button>
+                        </div>
+                        <small id="soundValidationResult">支持 wav/mp3/ogg/m4a/flac 格式</small>
                     </div>
                 </div>
 
                 <!-- 语义匹配配置 -->
-                <div class="form-group">
-                    <label>
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
                         <input type="checkbox" id="enableSemantic" name="enableSemantic">
-                        启用语义模糊匹配
+                        <span>启用语义模糊匹配</span>
                     </label>
-                    <small>使用 AI 语义模型匹配相似表达，如"签个到"≈"签到"（需要 API Key）</small>
+                    <small style="margin-left: 2rem;">使用 AI 语义模型匹配相似表达，如"签个到"≈"签到"（需要 API Key）</small>
                 </div>
                 <div class="form-row" id="semanticOptions" style="display: none;">
                     <div class="form-group">
@@ -203,7 +206,7 @@
         </section>
 
         <footer>
-            <p>课堂监听报警系统 v2.0 |
+            <p>课堂监听报警系统 v0.7 |
                 <a href="https://github.com/wangzhengzhuo05/realtimeBrowserSoundDetector" target="_blank">GitHub</a>
             </p>
         </footer>

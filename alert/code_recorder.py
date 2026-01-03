@@ -76,28 +76,38 @@ class CodeRecorder:
         matches = self.pattern.findall(text)
         
         new_codes = []
+        now = datetime.now()
         for code in matches:
-            # 检查是否已经记录过（避免重复）
-            # 只检查最近10条记录中是否有相同的码
-            recent_codes = [r['code'] for r in self.detected_codes[-10:]]
-            if code not in recent_codes:
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                record = {
-                    "code": code,
-                    "timestamp": timestamp,
-                    "context": text[:100]  # 保存上下文（最多100字符）
-                }
-                
-                with self.lock:
-                    self.detected_codes.append(record)
-                    self._save_records()
-                
-                new_codes.append(code)
-                print(f"{Fore.CYAN}[签到码] 检测到可能的签到码: {code} (时间: {timestamp}){Style.RESET_ALL}")
-                
-                # 触发回调
-                if self._callback:
-                    self._callback(code, timestamp)
+            # 查找最近一次记录的时间，超过 5 分钟则允许重复记录
+            last_record = next((r for r in reversed(self.detected_codes) if r.get("code") == code), None)
+            if last_record:
+                try:
+                    last_time = datetime.strptime(last_record.get("timestamp", ""), "%Y-%m-%d %H:%M:%S")
+                    delta = (now - last_time).total_seconds()
+                    if delta < 300:  # 5 分钟内重复出现则跳过
+                        print(f"{Fore.YELLOW}[签到码] 检测到重复签到码 {code}，距离上次仅 {int(delta)} 秒，跳过记录{Style.RESET_ALL}")
+                        continue
+                except Exception:
+                    # 时间解析异常时，直接继续记录以免漏掉
+                    pass
+            
+            timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+            record = {
+                "code": code,
+                "timestamp": timestamp,
+                "context": text[:100]  # 保存上下文（最多100字符）
+            }
+            
+            with self.lock:
+                self.detected_codes.append(record)
+                self._save_records()
+            
+            new_codes.append(code)
+            print(f"{Fore.CYAN}[签到码] 检测到可能的签到码: {code} (时间: {timestamp}){Style.RESET_ALL}")
+            
+            # 触发回调
+            if self._callback:
+                self._callback(code, timestamp)
         
         return new_codes
     

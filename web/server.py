@@ -48,6 +48,7 @@ class WebServer:
         self.app.router.add_get("/api/config", self._handle_get_config)
         self.app.router.add_post("/api/config", self._handle_save_config)
         self.app.router.add_post("/api/restart", self._handle_restart)
+        self.app.router.add_post("/api/validate-sound", self._handle_validate_sound)
         self.app.router.add_get("/ws/status", self._handle_status_ws)
         
         # 静态文件
@@ -87,6 +88,64 @@ class WebServer:
             return web.json_response({"success": True, "message": "服务正在重启"})
         except Exception as e:
             return web.json_response({"error": str(e)}, status=500)
+
+    async def _handle_validate_sound(self, request: web.Request) -> web.Response:
+        """验证音频文件路径或URL是否有效"""
+        try:
+            data = await request.json()
+            path = data.get("path", "").strip()
+            
+            if not path:
+                return web.json_response({"valid": False, "message": "路径为空"})
+            
+            # 支持的扩展名
+            exts = {".wav", ".mp3", ".ogg", ".m4a", ".flac"}
+            
+            # 检查是否为 URL
+            if path.startswith(("http://", "https://")):
+                import aiohttp
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.head(path, timeout=aiohttp.ClientTimeout(total=5)) as resp:
+                            if resp.status == 200:
+                                content_type = resp.headers.get("Content-Type", "")
+                                if "audio" in content_type or any(path.lower().endswith(e) for e in exts):
+                                    return web.json_response({"valid": True, "message": "URL 有效", "type": "url"})
+                                else:
+                                    return web.json_response({"valid": False, "message": f"URL 可访问但可能不是音频文件 (Content-Type: {content_type})"})
+                            else:
+                                return web.json_response({"valid": False, "message": f"URL 不可访问 (HTTP {resp.status})"})
+                except asyncio.TimeoutError:
+                    return web.json_response({"valid": False, "message": "URL 请求超时"})
+                except Exception as e:
+                    return web.json_response({"valid": False, "message": f"URL 请求失败: {str(e)}"})
+            
+            # 本地文件路径
+            file_path = Path(path)
+            if not file_path.is_absolute():
+                # 相对路径转为绝对路径（相对于项目根目录）
+                file_path = Path(__file__).parent.parent / path
+            
+            if not file_path.exists():
+                return web.json_response({"valid": False, "message": "文件不存在"})
+            
+            if not file_path.is_file():
+                return web.json_response({"valid": False, "message": "路径不是文件"})
+            
+            if file_path.suffix.lower() not in exts:
+                return web.json_response({"valid": False, "message": f"不支持的格式 ({file_path.suffix})，支持: {', '.join(exts)}"})
+            
+            # 检查文件大小
+            size_mb = file_path.stat().st_size / (1024 * 1024)
+            return web.json_response({
+                "valid": True, 
+                "message": f"文件有效 ({size_mb:.2f} MB)",
+                "type": "file",
+                "size": file_path.stat().st_size
+            })
+            
+        except Exception as e:
+            return web.json_response({"valid": False, "message": f"验证失败: {str(e)}"})
     
     async def _do_restart(self):
         """执行重启"""

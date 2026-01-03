@@ -9,11 +9,19 @@ import time
 import threading
 import winsound
 import os
+import os.path
 from typing import List, Optional
 
 from colorama import Fore, Style
 
 from .semantic_matcher import SemanticMatcher
+
+# 可选的多格式播放支持（mp3/ogg/m4a/flac 等依赖系统解码能力）
+try:
+    from playsound import playsound  # type: ignore
+    PLAYSOUND_AVAILABLE = True
+except ImportError:
+    PLAYSOUND_AVAILABLE = False
 
 
 class KeywordAlert:
@@ -29,7 +37,7 @@ class KeywordAlert:
         """
         :param keywords: 关键词列表
         :param cooldown: 报警冷却时间（秒）
-        :param custom_sound: 自定义报警音频文件路径（.wav格式），为None则使用默认蜂鸣声
+        :param custom_sound: 自定义报警音频文件路径（默认支持 .wav；安装 playsound 后可播放 mp3/ogg/m4a/flac 等）
         :param api_key: DashScope API Key（语义匹配需要）
         :param enable_semantic: 是否启用语义匹配
         :param semantic_threshold: 语义相似度阈值 (0-1)
@@ -134,8 +142,21 @@ class KeywordAlert:
     def _play_custom_sound(self):
         """播放自定义音频文件"""
         try:
-            # 播放自定义 WAV 文件（同步播放，确保完整播放）
-            winsound.PlaySound(self.custom_sound, winsound.SND_FILENAME)
+            ext = os.path.splitext(self.custom_sound)[1].lower()
+
+            # 1) WAV 直接用 winsound
+            if ext == ".wav":
+                winsound.PlaySound(self.custom_sound, winsound.SND_FILENAME)
+                return
+
+            # 2) 其他常见格式，尝试 playsound（需要额外安装 playsound）
+            if PLAYSOUND_AVAILABLE:
+                playsound(self.custom_sound, block=True)
+                return
+
+            # 3) 未安装 playsound 时的提示
+            print(f"{Fore.YELLOW}[警告] 检测到非 WAV 音频 {self.custom_sound}，请安装 playsound 以支持 mp3/ogg/m4a/flac: pip install playsound{Style.RESET_ALL}")
+            self._play_default_beep()
         except Exception as e:
             print(f"{Fore.YELLOW}[警告] 播放自定义音频失败: {e}，使用默认蜂鸣声{Style.RESET_ALL}")
             self._play_default_beep()

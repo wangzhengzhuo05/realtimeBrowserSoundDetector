@@ -135,6 +135,55 @@ async function saveConfig(e) {
     }
 }
 
+// 验证自定义音频路径
+async function validateSound() {
+    const pathInput = document.getElementById('customSound');
+    const resultEl = document.getElementById('soundValidationResult');
+
+    if (!pathInput || !resultEl) {
+        console.error('找不到输入框或结果元素');
+        alert('验证功能初始化失败，请刷新页面');
+        return;
+    }
+
+    const path = pathInput.value.trim();
+
+    if (!path) {
+        resultEl.textContent = '将使用默认蜂鸣声';
+        resultEl.style.color = '';
+        return;
+    }
+
+    resultEl.textContent = '验证中...';
+    resultEl.style.color = '#6b7280';
+
+    try {
+        const res = await fetch(`${API_BASE}/api/validate-sound`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path })
+        });
+
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        if (data.valid) {
+            resultEl.textContent = '✅ ' + data.message;
+            resultEl.style.color = '#10b981';
+        } else {
+            resultEl.textContent = '❌ ' + data.message;
+            resultEl.style.color = '#ef4444';
+        }
+    } catch (e) {
+        console.error('验证失败:', e);
+        resultEl.textContent = '❌ 验证失败: ' + e.message;
+        resultEl.style.color = '#ef4444';
+    }
+}
+
 // 重启服务
 async function restartService() {
     if (!confirm('确定要重启服务吗？这将断开所有连接。')) return;
