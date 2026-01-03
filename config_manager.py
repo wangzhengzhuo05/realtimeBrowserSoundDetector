@@ -11,6 +11,8 @@ from typing import List, Optional
 
 # 配置文件路径
 CONFIG_FILE = Path(__file__).parent / "config.json"
+# 本地敏感配置（不会提交到 git）
+LOCAL_SECRETS_FILE = Path(__file__).parent / ".secrets.json"
 
 # 默认配置
 DEFAULT_CONFIG = {
@@ -54,12 +56,28 @@ class ConfigManager:
                 for key, value in DEFAULT_CONFIG.items():
                     if key not in self._config:
                         self._config[key] = value
+                # 叠加本地敏感配置（仅本机，不入库）
+                self._load_local_secrets()
             except Exception as e:
                 print(f"[警告] 加载配置文件失败: {e}，使用默认配置")
                 self._config = DEFAULT_CONFIG.copy()
         else:
             # 尝试从旧的 config.py 迁移
             self._migrate_from_py()
+
+    def _load_local_secrets(self):
+        """从本地敏感配置文件加载密钥（不会被 git 追踪）"""
+        if not LOCAL_SECRETS_FILE.exists():
+            return
+        try:
+            with open(LOCAL_SECRETS_FILE, "r", encoding="utf-8") as f:
+                secrets_data = json.load(f)
+            # 仅允许覆盖敏感字段
+            if isinstance(secrets_data, dict):
+                if secrets_data.get("api_key"):
+                    self._config["api_key"] = secrets_data["api_key"]
+        except Exception as e:
+            print(f"[警告] 加载本地敏感配置失败: {e}")
     
     def _migrate_from_py(self):
         """从 config.py 迁移配置"""

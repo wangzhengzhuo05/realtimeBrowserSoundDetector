@@ -78,6 +78,10 @@ python main.py
 打开浏览器访问 **http://localhost:8080** ，在 Web 控制面板中：
 
 1. 通过环境变量 `DASHSCOPE_API_KEY` 设置 DashScope API Key（推荐，避免写入仓库），或在 Web 控制面板中填写后保存
+     - 也可以在项目根目录创建 `.secrets.json`（不会被 git 追踪），内容示例：
+         ```json
+         { "api_key": "your-api-key" }
+         ```
 2. 设置需要监控的关键词
 3. 点击「保存配置」
 4. 点击「重启服务」使配置生效

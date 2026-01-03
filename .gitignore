@@ -40,6 +40,8 @@ Thumbs.db
 # Project specific
 # 不要提交包含真实 API Key 的配置文件
 config.json
+.secrets.json
+.env
 # config.py  # 如果包含敏感信息请取消注释
 # 签到码记录（包含敏感信息）
 detected_codes.json
