@@ -291,10 +291,16 @@ class ClassroomMonitor:
     
     def _handle_config_update(self, data: dict):
         """处理配置热更新（无需重启即可生效的配置）"""
+        print(f"{Fore.CYAN}[热更新] 收到配置更新请求{Style.RESET_ALL}")
+        
         # 更新报警音源
         custom_sound = data.get("custom_sound")
+        print(f"{Fore.CYAN}[热更新] custom_sound = {custom_sound}{Style.RESET_ALL}")
+        
         if self.keyword_alert:
             self.keyword_alert.update_sound(custom_sound)
+        else:
+            print(f"{Fore.YELLOW}[热更新] keyword_alert 未初始化，无法更新音源{Style.RESET_ALL}")
         
         # 更新关键词（如果支持）
         keywords = data.get("keywords", [])

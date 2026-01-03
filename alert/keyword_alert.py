@@ -70,23 +70,40 @@ class KeywordAlert:
         if not sound_path:
             return None
         
+        print(f"{Fore.CYAN}[调试] 尝试解析音频路径: {sound_path}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}[调试] 项目根目录: {PROJECT_ROOT}{Style.RESET_ALL}")
+        
         # 1. 首先尝试作为绝对路径
         if os.path.isabs(sound_path) and os.path.exists(sound_path):
+            print(f"{Fore.CYAN}[调试] 绝对路径有效: {sound_path}{Style.RESET_ALL}")
             return sound_path
         
         # 2. 尝试作为相对路径（相对于项目根目录）
         relative_path = PROJECT_ROOT / sound_path
+        print(f"{Fore.CYAN}[调试] 尝试相对路径: {relative_path}{Style.RESET_ALL}")
         if relative_path.exists():
+            print(f"{Fore.CYAN}[调试] 相对路径有效: {relative_path}{Style.RESET_ALL}")
             return str(relative_path)
         
         # 3. 如果路径包含 assets/custom_sounds，尝试提取文件名并在默认目录查找
         if "custom_sounds" in sound_path:
             filename = os.path.basename(sound_path)
             default_path = PROJECT_ROOT / "assets" / "custom_sounds" / filename
+            print(f"{Fore.CYAN}[调试] 尝试默认目录: {default_path}{Style.RESET_ALL}")
             if default_path.exists():
+                print(f"{Fore.CYAN}[调试] 默认目录有效: {default_path}{Style.RESET_ALL}")
                 return str(default_path)
         
-        # 4. 路径无效
+        # 4. 尝试仅使用文件名在 assets/custom_sounds 中查找
+        filename = os.path.basename(sound_path)
+        fallback_path = PROJECT_ROOT / "assets" / "custom_sounds" / filename
+        print(f"{Fore.CYAN}[调试] 尝试文件名匹配: {fallback_path}{Style.RESET_ALL}")
+        if fallback_path.exists():
+            print(f"{Fore.CYAN}[调试] 文件名匹配成功: {fallback_path}{Style.RESET_ALL}")
+            return str(fallback_path)
+        
+        # 5. 路径无效
+        print(f"{Fore.YELLOW}[调试] 所有路径解析都失败{Style.RESET_ALL}")
         return None
     
     def _set_custom_sound(self, custom_sound: str = None):
