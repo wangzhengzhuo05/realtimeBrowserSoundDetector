@@ -43,6 +43,9 @@ class WebServer:
         # 配置更新回调（用于热更新运行中的组件）
         self.config_update_callback: Callable = None
         
+        # STT 记录器引用（在 monitor_web 中设置）
+        self.stt_recorder = None
+        
         # 设置路由
         self._setup_routes()
     
@@ -54,6 +57,15 @@ class WebServer:
         self.app.router.add_post("/api/validate-sound", self._handle_validate_sound)
         self.app.router.add_get("/api/list-sounds", self._handle_list_sounds)
         self.app.router.add_get("/ws/status", self._handle_status_ws)
+        
+        # STT 记录相关 API
+        self.app.router.add_get("/api/stt/sessions", self._handle_get_sessions)
+        self.app.router.add_get("/api/stt/session/{session_id}", self._handle_get_session_detail)
+        self.app.router.add_delete("/api/stt/session/{session_id}", self._handle_delete_session)
+        self.app.router.add_get("/api/stt/session/{session_id}/export", self._handle_export_session)
+        self.app.router.add_get("/api/stt/current", self._handle_get_current_session)
+        self.app.router.add_get("/api/stt/current/text", self._handle_get_current_text)
+        self.app.router.add_get("/api/stt/session/{session_id}/text", self._handle_get_session_text)
         
         # 静态文件
         self.app.router.add_get("/", self._handle_index)
@@ -274,6 +286,114 @@ class WebServer:
             "code": code,
             "timestamp": timestamp
         })
+    
+    async def _handle_get_sessions(self, request: web.Request) -> web.Response:
+        """获取所有会话列表"""
+        try:
+            if not self.stt_recorder:
+                return web.json_response({"sessions": []})
+            
+            sessions = self.stt_recorder.get_all_sessions()
+            return web.json_response({"sessions": sessions})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_get_session_detail(self, request: web.Request) -> web.Response:
+        """获取会话详情"""
+        try:
+            session_id = request.match_info.get("session_id")
+            if not self.stt_recorder:
+                return web.json_response({"error": "STT recorder not available"}, status=404)
+            
+            session_data = self.stt_recorder.get_session_detail(session_id)
+            if session_data:
+                return web.json_response(session_data)
+            else:
+                return web.json_response({"error": "Session not found"}, status=404)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_delete_session(self, request: web.Request) -> web.Response:
+        """删除会话"""
+        try:
+            session_id = request.match_info.get("session_id")
+            if not self.stt_recorder:
+                return web.json_response({"error": "STT recorder not available"}, status=404)
+            
+            success = self.stt_recorder.delete_session(session_id)
+            if success:
+                return web.json_response({"success": True, "message": "Session deleted"})
+            else:
+                return web.json_response({"error": "Failed to delete session"}, status=500)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_export_session(self, request: web.Request) -> web.Response:
+        """导出会话为文本文件"""
+        try:
+            session_id = request.match_info.get("session_id")
+            if not self.stt_recorder:
+                return web.json_response({"error": "STT recorder not available"}, status=404)
+            
+            output_file = self.stt_recorder.export_session_to_text(session_id)
+            if output_file and os.path.exists(output_file):
+                return web.FileResponse(
+                    output_file, 
+                    headers={"Content-Disposition": f"attachment; filename={session_id}.txt"}
+                )
+            else:
+                return web.json_response({"error": "Failed to export session"}, status=500)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_get_current_session(self, request: web.Request) -> web.Response:
+        """获取当前正在记录的会话信息"""
+        try:
+            if not self.stt_recorder:
+                return web.json_response({"recording": False})
+            
+            if self.stt_recorder.is_recording():
+                return web.json_response({
+                    "recording": True,
+                    "session_id": self.stt_recorder.get_current_session_id()
+                })
+            else:
+                return web.json_response({"recording": False})
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_get_current_text(self, request: web.Request) -> web.Response:
+        """获取当前正在记录的会话的文本内容"""
+        try:
+            if not self.stt_recorder:
+                return web.json_response({"error": "STT recorder not available"}, status=404)
+            
+            text_content = self.stt_recorder.get_current_text_content()
+            if text_content is not None:
+                return web.Response(text=text_content, content_type="text/plain", charset="utf-8")
+            else:
+                return web.json_response({"error": "No active recording"}, status=404)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    async def _handle_get_session_text(self, request: web.Request) -> web.Response:
+        """获取指定会话的文本内容"""
+        try:
+            session_id = request.match_info.get("session_id")
+            if not self.stt_recorder:
+                return web.json_response({"error": "STT recorder not available"}, status=404)
+            
+            text_content = self.stt_recorder.get_session_text_content(session_id)
+            if text_content is not None:
+                return web.Response(text=text_content, content_type="text/plain", charset="utf-8")
+            else:
+                return web.json_response({"error": "Session not found"}, status=404)
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=500)
+    
+    def set_stt_recorder(self, recorder):
+        """设置 STT 记录器"""
+        self.stt_recorder = recorder
     
     def _load_config(self) -> dict:
         """加载配置"""

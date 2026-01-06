@@ -1,0 +1,52 @@
+[
+  {
+    "session_id": "20260106_081806",
+    "start_time": "2026-01-06T08:18:06.780361",
+    "end_time": "2026-01-06T08:18:08.586426",
+    "duration": 1.81,
+    "total_chars": 39,
+    "text_count": 3,
+    "keywords_count": 0,
+    "file_path": "test_stt_records\\20260106_081806.json"
+  },
+  {
+    "session_id": "20260106_081734",
+    "start_time": "2026-01-06T08:17:34.168838",
+    "end_time": "2026-01-06T08:17:35.976066",
+    "duration": 1.81,
+    "total_chars": 39,
+    "text_count": 3,
+    "keywords_count": 0,
+    "file_path": "test_stt_records\\20260106_081734.json"
+  },
+  {
+    "session_id": "20260106_081540",
+    "start_time": "2026-01-06T08:15:40.411843",
+    "end_time": "2026-01-06T08:15:42.218513",
+    "duration": 1.81,
+    "total_chars": 39,
+    "text_count": 3,
+    "keywords_count": 0,
+    "file_path": "test_stt_records\\20260106_081540.json"
+  },
+  {
+    "session_id": "20260106_081446",
+    "start_time": "2026-01-06T08:14:46.759275",
+    "end_time": "2026-01-06T08:14:48.566263",
+    "duration": 1.81,
+    "total_chars": 39,
+    "text_count": 3,
+    "keywords_count": 0,
+    "file_path": "test_stt_records\\20260106_081446.json"
+  },
+  {
+    "session_id": "20260106_081340",
+    "start_time": "2026-01-06T08:13:40.261401",
+    "end_time": "2026-01-06T08:13:42.069731",
+    "duration": 1.81,
+    "total_chars": 71,
+    "text_count": 8,
+    "keywords_count": 0,
+    "file_path": "test_stt_records\\20260106_081340.json"
+  }
+]

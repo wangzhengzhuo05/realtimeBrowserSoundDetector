@@ -1,0 +1,32 @@
+[
+  {
+    "session_id": "20260106_083001",
+    "start_time": "2026-01-06T08:30:01.841484",
+    "end_time": "2026-01-06T08:30:17.820458",
+    "duration": 15.98,
+    "total_chars": 0,
+    "text_count": 0,
+    "keywords_count": 0,
+    "file_path": "stt_records\\20260106_083001.json"
+  },
+  {
+    "session_id": "20260106_082934",
+    "start_time": "2026-01-06T08:29:34.072610",
+    "end_time": "2026-01-06T08:29:52.071232",
+    "duration": 18.0,
+    "total_chars": 0,
+    "text_count": 0,
+    "keywords_count": 0,
+    "file_path": "stt_records\\20260106_082934.json"
+  },
+  {
+    "session_id": "20260106_081857",
+    "start_time": "2026-01-06T08:18:57.104163",
+    "end_time": "2026-01-06T08:25:55.164703",
+    "duration": 418.06,
+    "total_chars": 1823,
+    "text_count": 82,
+    "keywords_count": 0,
+    "file_path": "stt_records\\20260106_081857.json"
+  }
+]

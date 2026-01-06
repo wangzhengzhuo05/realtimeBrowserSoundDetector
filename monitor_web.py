@@ -16,6 +16,7 @@ from asr import DashScopeASR, FunASREngine
 from alert import KeywordAlert, Qwen2AudioDetector, LLMTextDetector
 from alert.code_recorder import CodeRecorder
 from web import WebServer
+from stt_recorder import STTRecorder
 
 
 class ClassroomMonitor:
@@ -54,7 +55,8 @@ class ClassroomMonitor:
                 api_key=config.api_key,
                 enable_semantic=config.enable_semantic,
                 semantic_threshold=config.semantic_threshold,
-                semantic_model=config.semantic_model
+                semantic_model=config.semantic_model,
+                alert_mode=config.alert_mode
             )
             
             if self.use_cloud_api:
@@ -101,7 +103,8 @@ class ClassroomMonitor:
                 api_key=config.api_key,
                 enable_semantic=False,  # 混合模式不用语义匹配，由 LLM 负责
                 semantic_threshold=config.semantic_threshold,
-                semantic_model=config.semantic_model
+                semantic_model=config.semantic_model,
+                alert_mode=config.alert_mode
             )
             
             # 初始化 LLM 文本检测器
@@ -129,7 +132,8 @@ class ClassroomMonitor:
                 api_key=config.api_key,
                 enable_semantic=config.enable_semantic,
                 semantic_threshold=config.semantic_threshold,
-                semantic_model=config.semantic_model
+                semantic_model=config.semantic_model,
+                alert_mode=config.alert_mode
             )
             
             # 根据配置选择 ASR 引擎
@@ -149,6 +153,19 @@ class ClassroomMonitor:
         self.code_recorder = CodeRecorder(save_path="detected_codes.json", min_digits=4)
         self.code_recorder.set_callback(self._on_code_detected)
         
+        # 初始化 STT 记录器
+        self.stt_recorder = None
+        if getattr(config, 'enable_stt_recording', True):
+            dedup_threshold = getattr(config, 'stt_dedup_threshold', 0.6)
+            self.stt_recorder = STTRecorder(
+                save_dir="stt_records",
+                dedup_threshold=dedup_threshold
+            )
+            # 设置到 web 服务器以提供 API
+            self.web_server.set_stt_recorder(self.stt_recorder)
+            print(f"{Fore.GREEN}[STT记录] 已启用，记录将保存到 stt_records 目录{Style.RESET_ALL}")
+            print(f"{Fore.CYAN}[STT记录] 去重阈值: {dedup_threshold} (值越大去重越严格){Style.RESET_ALL}")
+        
         self.is_running = False
         self.text_buffer = ""  # 用于累积识别文本
         self._restart_requested = False
@@ -160,6 +177,10 @@ class ClassroomMonitor:
             # 显示识别结果
             label = "[ASR]" if self.debug_mode else "[识别]"
             print(f"{Fore.WHITE}{label} {text}{Style.RESET_ALL}")
+            
+            # 记录到 STT 记录器
+            if self.stt_recorder:
+                self.stt_recorder.record_text(text)
             
             # 检测签到码
             self.code_recorder.check_text(text)
@@ -177,6 +198,10 @@ class ClassroomMonitor:
             # 如果触发了报警，通知 Web 客户端并清空缓冲区
             if detected:
                 keywords = [kw for kw in config.keywords if kw in self.text_buffer]
+                # 记录检测到的关键词
+                if self.stt_recorder:
+                    for kw in keywords:
+                        self.stt_recorder.record_keyword_detected(kw, self.text_buffer)
                 self._schedule_async(self.web_server.send_alert(keywords, text, source))
                 # 清空缓冲区，避免同一内容重复触发
                 self.text_buffer = ""
@@ -191,6 +216,9 @@ class ClassroomMonitor:
             # Debug 模式下用不同颜色区分
             label = "[Qwen2-Audio]" if self.debug_mode else "[识别]"
             print(f"{Fore.MAGENTA}{label} {text}{Style.RESET_ALL}")
+            # 记录到 STT 记录器
+            if self.stt_recorder:
+                self.stt_recorder.record_text(text)
             # 发送识别结果
             source = "qwen2-audio" if self.debug_mode else None
             self._schedule_async(self.web_server.send_recognition(text, source))
@@ -216,6 +244,10 @@ class ClassroomMonitor:
         if text:
             print(f"{Fore.WHITE}[识别] {text}{Style.RESET_ALL}")
             
+            # 记录到 STT 记录器
+            if self.stt_recorder:
+                self.stt_recorder.record_text(text)
+            
             # 检测签到码
             self.code_recorder.check_text(text)
             
@@ -231,6 +263,10 @@ class ClassroomMonitor:
                 if detected:
                     keywords = [kw for kw in config.keywords if kw in self.text_buffer]
                     print(f"{Fore.YELLOW}[ASR报警] 关键词: {', '.join(keywords)}{Style.RESET_ALL}")
+                    # 记录检测到的关键词
+                    if self.stt_recorder:
+                        for kw in keywords:
+                            self.stt_recorder.record_keyword_detected(kw, self.text_buffer)
                     self._schedule_async(self.web_server.send_alert(keywords, text, "asr"))
                     # 清空缓冲区，避免重复触发
                     self.text_buffer = ""
@@ -356,6 +392,10 @@ class ClassroomMonitor:
             # 启动 Web 控制面板
             await self.web_server.start()
             
+            # 开始 STT 记录会话
+            if self.stt_recorder:
+                self.stt_recorder.start_session()
+            
             self.is_running = True
             
             mode_info = "DEBUG (ASR + Qwen2-Audio)" if self.debug_mode else self.detect_mode
@@ -381,6 +421,10 @@ class ClassroomMonitor:
     async def stop_async(self):
         """异步停止监听"""
         self.is_running = False
+        
+        # 结束并保存 STT 记录会话
+        if self.stt_recorder and self.stt_recorder.is_recording():
+            self.stt_recorder.end_session()
         
         print(f"\n{Fore.CYAN}正在停止系统...{Style.RESET_ALL}")
         

@@ -12,6 +12,8 @@ import os
 import os.path
 from pathlib import Path
 from typing import List, Optional
+import tkinter as tk
+from tkinter import messagebox
 
 from colorama import Fore, Style
 
@@ -37,7 +39,7 @@ class KeywordAlert:
     
     def __init__(self, keywords: List[str], cooldown: int = 10, custom_sound: str = None,
                  api_key: str = None, enable_semantic: bool = False, semantic_threshold: float = 0.65,
-                 semantic_model: str = "text-embedding-v3"):
+                 semantic_model: str = "text-embedding-v3", alert_mode: str = "sound"):
         """
         :param keywords: 关键词列表
         :param cooldown: 报警冷却时间（秒）
@@ -45,10 +47,12 @@ class KeywordAlert:
         :param api_key: DashScope API Key（语义匹配需要）
         :param enable_semantic: 是否启用语义匹配
         :param semantic_threshold: 语义相似度阈值 (0-1)
+        :param alert_mode: 报警模式: 'sound'(声音), 'popup'(弹窗), 'both'(两者都有)
         """
         self.keywords = keywords
         self.cooldown = cooldown
         self.custom_sound = None
+        self.alert_mode = alert_mode
         self.last_alert_time = 0
         self.lock = threading.Lock()
         self.enable_semantic = enable_semantic
@@ -196,9 +200,46 @@ class KeywordAlert:
         print(f"  原文: {text[-100:] if len(text) > 100 else text}")
         print(f"\n{'!'*60}{Style.RESET_ALL}\n")
         
-        # 播放系统提示音 (使用 Windows Beep)
-        # 在后台线程中播放，避免阻塞主流程
-        threading.Thread(target=self._play_alert_sound, daemon=True).start()
+        # 根据报警模式执行不同操作
+        if self.alert_mode == "sound":
+            # 仅播放声音
+            threading.Thread(target=self._play_alert_sound, daemon=True).start()
+        elif self.alert_mode == "popup":
+            # 仅显示弹窗
+            threading.Thread(target=self._show_alert_popup, args=(keywords, text, match_type), daemon=True).start()
+        elif self.alert_mode == "both":
+            # 同时播放声音和显示弹窗
+            threading.Thread(target=self._play_alert_sound, daemon=True).start()
+            threading.Thread(target=self._show_alert_popup, args=(keywords, text, match_type), daemon=True).start()
+        else:
+            # 默认播放声音
+            threading.Thread(target=self._play_alert_sound, daemon=True).start()
+    
+    def _show_alert_popup(self, keywords: List[str], text: str, match_type: str):
+        """显示报警弹窗"""
+        try:
+            # 创建一个简单的 tkinter 弹窗
+            root = tk.Tk()
+            root.withdraw()  # 隐藏主窗口
+            
+            # 设置弹窗属性
+            root.attributes('-topmost', True)  # 置顶显示
+            
+            # 构建消息内容
+            message = f"匹配类型: {match_type}\n"
+            message += f"关键词: {', '.join(keywords)}\n\n"
+            message += f"原文: {text[-100:] if len(text) > 100 else text}"
+            
+            # 显示警告弹窗
+            messagebox.showwarning(
+                "⚠️ 检测到关键词报警",
+                message,
+                parent=root
+            )
+            
+            root.destroy()
+        except Exception as e:
+            print(f"{Fore.YELLOW}[警告] 显示弹窗失败: {e}{Style.RESET_ALL}")
     
     def _play_alert_sound(self):
         """播放报警提示音 - 通过电脑扬声器输出"""

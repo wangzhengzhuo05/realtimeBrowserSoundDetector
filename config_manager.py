@@ -23,6 +23,7 @@ DEFAULT_CONFIG = {
     "keywords": ["签到", "点名", "打开手机", "扫码", "考勤", "输入码", "钉钉", "上课"],
     "cooldown": 5,
     "custom_sound": None,
+    "alert_mode": "sound",
     "web_host": "localhost",
     "web_port": 8080,
     "enable_semantic": False,
@@ -192,6 +193,11 @@ class ConfigManager:
     def llm_model(self) -> str:
         """LLM 模型名称"""
         return self._config.get("llm_model", "qwen-turbo")
+    
+    @property
+    def alert_mode(self) -> str:
+        """报警模式: sound（声音）, popup（弹窗）, both（两者都有）"""
+        return self._config.get("alert_mode", "sound")
     
     def to_dict(self) -> dict:
         """返回配置字典"""

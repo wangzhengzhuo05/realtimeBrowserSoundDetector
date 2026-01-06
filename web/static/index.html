@@ -13,6 +13,16 @@
         <header>
             <h1>🎓 课堂监听报警系统</h1>
             <p class="subtitle">Classroom Audio Monitor & Alert System</p>
+            <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                <a href="/live_text.html"
+                    style="display: inline-block; padding: 10px 20px; background-color: #2ecc71; color: white; text-decoration: none; border-radius: 5px; transition: background-color 0.3s;">
+                    📄 实时文本查看
+                </a>
+                <a href="/records.html"
+                    style="display: inline-block; padding: 10px 20px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px; transition: background-color 0.3s;">
+                    📝 历史记录
+                </a>
+            </div>
         </header>
 
         <!-- 状态面板 -->
@@ -148,6 +158,17 @@
                         <small>设为 0 表示不限制</small>
                     </div>
                     <div class="form-group">
+                        <label for="alertMode">报警方式</label>
+                        <select id="alertMode" name="alertMode">
+                            <option value="sound">🔊 声音报警</option>
+                            <option value="popup">💬 弹窗报警（无声）</option>
+                            <option value="both">🔊💬 声音+弹窗</option>
+                        </select>
+                        <small>选择报警通知方式</small>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 1;">
                         <div class="label-with-status">
                             <label for="customSound">自定义报警音频</label>
                             <span class="current-sound-badge" id="currentSound">🔔 默认蜂鸣声</span>

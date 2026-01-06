@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupAutoSave() {
     const fields = [
         'useCloudApi', 'apiKey', 'wsHost', 'wsPort',
-        'keywords', 'cooldown', 'customSound', 'semanticModel'
+        'keywords', 'cooldown', 'customSound', 'semanticModel', 'alertMode'
     ];
 
     fields.forEach(id => {
@@ -94,6 +94,7 @@ async function saveConfigAuto() {
         keywords: keywords,
         cooldown: parseInt(document.getElementById('cooldown').value),
         custom_sound: document.getElementById('customSound').value || null,
+        alert_mode: document.getElementById('alertMode').value || 'sound',
         enable_semantic: document.getElementById('enableSemantic').checked,
         semantic_threshold: parseFloat(document.getElementById('semanticThreshold').value),
         semantic_model: document.getElementById('semanticModel').value || 'text-embedding-v3'
@@ -150,6 +151,7 @@ async function loadConfig() {
         document.getElementById('wsPort').value = config.ws_port || 8765;
         document.getElementById('keywords').value = (config.keywords || []).join('\n');
         document.getElementById('cooldown').value = config.cooldown || 5;
+        document.getElementById('alertMode').value = config.alert_mode || 'sound';
         const customSoundValue = config.custom_sound === null ? '' : (config.custom_sound || '');
         document.getElementById('customSound').value = customSoundValue;
 
@@ -198,6 +200,7 @@ async function saveConfig(e) {
         keywords: keywords,
         cooldown: parseInt(document.getElementById('cooldown').value),
         custom_sound: document.getElementById('customSound').value || null,
+        alert_mode: document.getElementById('alertMode').value || 'sound',
         enable_semantic: document.getElementById('enableSemantic').checked,
         semantic_threshold: parseFloat(document.getElementById('semanticThreshold').value),
         semantic_model: document.getElementById('semanticModel').value || 'text-embedding-v3'

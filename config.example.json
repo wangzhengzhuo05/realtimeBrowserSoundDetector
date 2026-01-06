@@ -15,6 +15,7 @@
     ],
     "cooldown": 5,
     "custom_sound": "assets/custom_sounds/alert.wav",
+    "alert_mode": "sound",
     "enable_semantic": false,
     "semantic_threshold": 0.65,
     "semantic_model": "text-embedding-v3",
@@ -22,5 +23,7 @@
     "debug_mode": false,
     "mute_playback": false,
     "llm_detect_interval": 3.0,
-    "llm_model": "qwen-turbo"
+    "llm_model": "qwen-turbo",
+    "enable_stt_recording": true,
+    "stt_dedup_threshold": 0.6
 }
